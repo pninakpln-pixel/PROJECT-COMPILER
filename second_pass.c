@@ -56,20 +56,20 @@ while(fgets(line, sizeof(line),am_file) != NULL){
     }
     /*Put the variable at the beginning of the line and take the first word */
     ptr_line=line;
-    ptr_line=extract_word(ptr_line,word,0);
+    ptr_line=extract_word(ptr_line,word,IS_NOT_REGISTER);
     /* If the first word is a label, skip it */
-    if (is_label(word)==1) {
-        ptr_line= extract_word(ptr_line, word,0);/* Take the next word */
-        if (word[0] =='\0') {
+    if (is_label(word)==SUCCESS_F) {
+        ptr_line= extract_word(ptr_line, word,IS_NOT_REGISTER );/* Take the next word */
+        if (word[FIRST_INDEX] =='\0') {
             continue; /* If there is nothing after the label, continue to the next line */
         }
     }
-    if(word[0]=='.'){
+    if(word[FIRST_INDEX]=='.'){
         /*If it's .entry we deal with it in the second pass*/
-        if(strcmp(word, ".entry") == 0){
-            ptr_line=extract_word(ptr_line,word,0);
+        if(strcmp(word, ".entry")==ERROR_F){
+            ptr_line=extract_word(ptr_line,word,IS_NOT_REGISTER );
             /* If the label name does not exist */
-            if(word[0]=='\0'){
+            if(word[FIRST_INDEX]=='\0'){
                 error_found=1;
                 fprintf(stderr,"there is an error,in file %s on line %d missing label\n",file_name,line_number);
                 continue;
@@ -77,16 +77,16 @@ while(fgets(line, sizeof(line),am_file) != NULL){
             /* Search for the label in the table to see if it exists in the code */
             current_symbol=find_symbol(symbol_list,word);
             if(current_symbol==NULL){
-                error_found = 1;
+                error_found=ON;
                 fprintf(stderr,"there is an error,in file %s on line %d the label %s doesn't exist\n",file_name,line_number,word);
             }else if(current_symbol->type==SYMBOL_EXTERN){
                 /* A label cannot be both extern and entry */
                 fprintf(stderr,"there is an error,in file %s on line %d the label %s can't be both entry and extern.\n",file_name,line_number,word);
-                error_found=1;
+                error_found=ON;
 
             }else{
                 /* If there are no errors, add the label to the entry list and change its status */
-                if(add_ext_ent(ent_list,current_symbol->name,current_symbol->address)==0){
+                if(add_ext_ent(ent_list,current_symbol->name,current_symbol->address)==ERROR_F){
                     fprintf(stderr,"there is an error,in file %s on line %d memory allocation failed for new entry node: %s.\n",file_name,line_number,current_symbol->name);
                     
                     if (am_file!= NULL) {
@@ -94,7 +94,7 @@ while(fgets(line, sizeof(line),am_file) != NULL){
                     }
                     return MEMORY_ERROR;/* Return -1 as a memory error indicator */
                 } 
-                current_symbol->is_entry = 1;
+                current_symbol->is_entry=IS_ENTRY;
             }
         }
         continue;
@@ -103,39 +103,39 @@ while(fgets(line, sizeof(line),am_file) != NULL){
     inst=find_instruction(word);
     if(inst == NULL){
         fprintf(stderr,"there is an error,in file %s on line %d the %s instruction is unknown\n",file_name,line_number,word);
-        error_found=1;
+        error_found=ON;
         continue;
     }
     /* If this is a jump command (J) */
     if(inst->type == TYPE_J_JUMP || inst->type==TYPE_J_LOAD_ADD || inst->type==TYPE_J_CALL){
         
-        ptr_line=extract_word(ptr_line,target,0);/* Get the label to jump to */
+        ptr_line=extract_word(ptr_line,target,IS_NOT_REGISTER );/* Get the label to jump to */
         /* If the label is missing */
-        if(target[0]=='\0'){
-            error_found=1;
+        if(target[FIRST_INDEX]=='\0'){
+            error_found=ON;
             fprintf(stderr,"there is an error,in file %s on line %d missing operand for %s instruction\n",file_name,line_number,inst->name);
-            ic+=4;
+            ic+=BYTES_PER_WORD;
             continue;
         }
         /* Jump to address within a register already handled in the first pass */
-        if(target[0]=='$'&&strcmp(inst->name,"jmp")==0) {
-            ic+=4;
+        if(target[FIRST_INDEX]=='$'&&strcmp(inst->name,"jmp")==ERROR_F) {
+            ic+=BYTES_PER_WORD;
             continue;
         }
         /* Search for the label we want to jump to within the table */
         current_symbol=find_symbol(symbol_list,target);
         if(current_symbol==NULL){
             fprintf(stderr,"there is an error in file %s on line %d, the label %s doesn't exist\n",file_name,line_number,target);
-            error_found=1;
-            ic+=4;
+            error_found=ON;
+            ic+=BYTES_PER_WORD;
             continue;
         }else{
             /*If found, calculate the position in the machine code array */
-            index=(ic-100); 
+            index=(ic-IC_START_VALUE); 
             address_target=current_symbol->address;
             if(current_symbol->type==SYMBOL_EXTERN){
                 /* If a label is in another file (extern) then we put 0 */
-                address_target=0;
+                address_target=EXTERN_ADDRESS;
                 /*Write to the external file*/
                 if(add_ext_ent(ext_list,current_symbol->name,ic)==0){
                     fprintf(stderr,"there is an error,in file %s on line %d memory allocation failed for new extern node: %s.\n",file_name,line_number,current_symbol->name);
@@ -143,20 +143,20 @@ while(fgets(line, sizeof(line),am_file) != NULL){
                     if (am_file != NULL) {
                         fclose(am_file);
                     }
-                    return -1;/* Return -1 as a memory error indicator */
+                    return MEMORY_ERROR;/* Return -1 as a memory error indicator */
 
                 }
             }/*Entering the address in machine code, split the 25 bits of the address into 4 bytes in Little-endian order */
-            code_img[index] |=(address_target & 0xFF); /* 8 low bits */
-            code_img[index+1] |=((address_target >> 8) & 0xFF);  /* Next 8 bits */
-            code_img[index+2] |=((address_target >> 16) & 0xFF); /* Next 8 bits */
-            code_img[index+3] |=((address_target >> 24) & 0x01); /* The 25th bit goes into the lower bit of the fourth byte */
+            code_img[index] |=(address_target &MASK_OF_BYTE); /* 8 low bits */
+            code_img[index+SECOND_BYTE] |=((address_target >> ONE_BYTE) & MASK_OF_BYTE);  /* Next 8 bits */
+            code_img[index+THIRD_BYTE] |=((address_target >> TWO_BYTES) & MASK_OF_BYTE); /* Next 8 bits */
+            code_img[index+FOURTH_BYTE] |=((address_target >> THREE_BYTES) & MASK_for_SINGLE_BIT); /* The 25th bit goes into the lower bit of the fourth byte */
         }
-        ic+=4;
+        ic+=BYTES_PER_WORD;
 /* Each command weighs 4 bytes */
     } else if(inst->type==TYPE_I_BRANCH){/* If this is a type I conditional branch */
         /* Extract the first register and skip the comma after it */
-        ptr_line=extract_word(ptr_line,word,1);
+        ptr_line=extract_word(ptr_line,word,IS_REGISTER);
         while (isspace((char)*ptr_line)){
             ptr_line++;
         }
@@ -164,7 +164,7 @@ while(fgets(line, sizeof(line),am_file) != NULL){
              ptr_line++;
         }
         /* Extract the second register and skip the comma after it */
-        ptr_line=extract_word(ptr_line,word,1);
+        ptr_line=extract_word(ptr_line,word,IS_REGISTER);
           while (isspace((char)*ptr_line)){
             ptr_line++;
         }
@@ -172,44 +172,44 @@ while(fgets(line, sizeof(line),am_file) != NULL){
              ptr_line++;
         }
         /* Take a label and extract it all*/
-        ptr_line=extract_word(ptr_line,target,0);
+        ptr_line=extract_word(ptr_line,target,IS_NOT_REGISTER );
 
         if(target[0]=='\0'){ 
             fprintf(stderr,"there is an error,in file %s on line %d missing label operand for %s instruction\n",file_name,line_number,inst->name);
-            error_found = 1;
-            ic += 4;
+            error_found=ON;
+            ic+=BYTES_PER_WORD;
             continue;
         }
         /* Check if the label exists in the table */
         current_symbol = find_symbol(symbol_list, target);
         if(current_symbol==NULL){
             fprintf(stderr,"there is an error in file %s on line %d, the label %s doesn't exist\n",file_name,line_number,target);
-            ic += 4;
-            error_found = 1;
+            ic+=BYTES_PER_WORD;
+            error_found=ON;
             continue;
         }else if(current_symbol->type == SYMBOL_EXTERN){
             /* Do not branch to an external label */
             fprintf(stderr,"there is an error in file %s on line %d,branch target %s cannot be  external\n",file_name,line_number,target);
-            ic += 4;
-            error_found = 1;
+            ic+=BYTES_PER_WORD;
+            error_found=ON;
             continue;
         }else{
             /* Calculate how many bytes to go forward/backward from the current point*/
-            index = (ic-100);
+            index = (ic-IC_START_VALUE);
             dis=current_symbol->address-ic;
             /* Enter the distance */
             /*Split the 16 bits of the distance into the first 2 bytes*/
-            code_img[index] |=(dis&0xFF);
-            code_img[index+1] |=((dis>>8)&0xFF);
-            ic+= 4;
+            code_img[index] |=(dis&MASK_OF_BYTE);
+            code_img[index+1] |=((dis>>ONE_BYTE)&MASK_OF_BYTE);
+            ic+=BYTES_PER_WORD;
             continue;
         }
     }else{/* The other commands have already been processed in the first pass */
-        ic+=4;
+        ic+=BYTES_PER_WORD;
     }   
 }
 fclose(am_file);
-if(error_found == 1){
+if(error_found==ON){
     return ERROR_F; /*If we found at least one error along the way - we will return 0.*/
 }else{
     return SUCCESS_F; /* No errors here, return 1 */
