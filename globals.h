@@ -17,6 +17,27 @@
 #define DC_START_VALUE 0/* The starting address of the data image */
 #define START_VALUE 0/*Initialize to value 0*/
 
+/*...............................
+#define MAX_NAME_LENGTH 32
+
+#define MAX_WORD_LEN 32
+#define BYTES_PER_BYTE 1
+#define BYTES_PER_WORD 4
+#define BYTES_PER_HALF_WORD 2
+#define BITS_PER_BYTE 8
+
+#define FIRST_INDEX 0
+
+
+#define IS_REGISTER 1
+#define IS_NOT_REGISTER 0
+
+#define IS_MACRO 1
+#define IS_NOT_MACRO 0
+
+#define WRONG_IMMED -32769
+...............................*/
+
 #define ON 1/*Flag on*/
 #define OFF 0 /*Flag off*/
 #define TRUE 1 /*Returns a logical true value.*/
