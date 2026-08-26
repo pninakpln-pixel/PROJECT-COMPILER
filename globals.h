@@ -10,42 +10,24 @@
 #define MEMORY_SIZE 4096/* Maximum array size in computer memory */
 #define MAX_LINE_LENGTH 82 /* Maximum line length, 80 characters + \n + \0 */
 #define MAX_LABEL_LENGTH 32 /* Maximum label length, 31 characters + \0 */
+#define MAX_M_L_CHAR 31 /* Maximum  31 characters in macro and label*/
 #define MAX_MACRO_LENGTH 32/* Maximum length for name, 31 characters + '\0' */
 #define MAX_WORD_LENGTH 32/* Maximum length for any word */
 #define MEMORY_ERROR -1/*Returning an error in case of lack of memory space*/
 #define IC_START_VALUE 100/* The starting address of the instruction image */
 #define DC_START_VALUE 0/* The starting address of the data image */
 #define START_VALUE 0/*Initialize to value 0*/
-
-/*...............................
-#define MAX_NAME_LENGTH 32
-
-#define MAX_WORD_LEN 32
-#define BYTES_PER_BYTE 1
-#define BYTES_PER_WORD 4
-#define BYTES_PER_HALF_WORD 2
-#define BITS_PER_BYTE 8
-
-#define FIRST_INDEX 0
-
-
-#define IS_REGISTER 1
-#define IS_NOT_REGISTER 0
-
-#define IS_MACRO 1
-#define IS_NOT_MACRO 0
-
+#define END_OF_STRING_CHAR 1/* Size of space for end of string character \0 */
+#define TO_LAST_CHAR 1/* Subtract 1 to get to the last character */
 #define WRONG_IMMED -32769
-...............................*/
-
+#define NO_CHAR 0/* no chare in string*/
 #define ON 1/*Flag on*/
 #define OFF 0 /*Flag off*/
-#define TRUE 1 /*Returns a logical true value.*/
-#define FALSE 0/*Returns a logical false value.*/
 #define SUCCESS_F 1/* Indicates success of a function*/
 #define ERROR_F 0/*Indicates a function failure.*/
 #define ERROR_MAIN 1/*An error was detected in main*/
 #define SUCCESS_MAIN 0/*No errors and success returned for main*/
+#define SAME 0/*result os compare function*/
 
 #define NO_FILE_ARG 1/* Number of arguments that are not input files */
 #define MIN_ARG 2 /* Minimum number of arguments*/
@@ -62,6 +44,7 @@
 #define IS_NOT_REGISTER 0/* The operand is not a register */
 #define IS_MACRO 1/* The operand is a macro */
 #define IS_NOT_MACRO 0/* The operand is not a macro */
+#define IS_NOT_ENTRY 0/* The operand is not entry*/
 #define IS_ENTRY 1/* The operand is entry*/
 #define BYTES_PER_BYTE 1
 #define BYTES_PER_WORD 4/* Number of bytes in a full word*/
@@ -74,57 +57,9 @@
 #define ONE_BYTE 8/*Shift by one byte-8 bits */
 #define TWO_BYTES 16/*Shift by two bytes-16 bits */
 #define THREE_BYTES 24/*Shift by three bytes-24 bits */
-
+#define NUM_INSTRUCTIONS 27
 extern int ICF;/*Final instruction counter value*/
 extern int DCF;/*Final data counter value*/
 
-
-typedef struct EXT_ENT_NODE{
-    char name[MAX_NAME_LENGTH];
-    int address;
-    struct EXT_ENT_NODE *next;
-}EXT_ENT_NODE;
-
-
-typedef enum {
-    SYMBOL_CODE,  
-    SYMBOL_DATA,  
-    SYMBOL_EXTERN 
-} SymbolType;
-
-
-
-typedef struct Symbol {
-    char name[32];        
-    int address;         
-    SymbolType type;     
-    int is_entry;        
-    struct Symbol *next;  
-} Symbol;
-
-typedef enum {
-    TYPE_R_ALU,   /* פקודות אריתמטיות/לוגיות R */
-    TYPE_R_MOVE,
-    TYPE_I_ALU,   /* פקודות אריתמטיות עם מיידי */
-    TYPE_I_BRANCH,/* פקודות התניה כמו beq, bne */
-    TYPE_I_LOAD_STORE, /* load/store */
-    TYPE_J_JUMP,  /* פקודות קפיצה J */
-    TYPE_J_LOAD_ADD,
-    TYPE_J_CALL,
-    TYPE_J_HLT
-} InstructionType;
-
-typedef struct Instruction{
-    char *name;         
-    InstructionType type;
-    int opcode;         
-    int funct;          
-} Instruction;
-
-
-#define NUM_INSTRUCTIONS 27
-
-extern int ICF;
-extern int DCF;
 
 #endif

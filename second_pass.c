@@ -66,7 +66,7 @@ while(fgets(line, sizeof(line),am_file) != NULL){
     }
     if(word[FIRST_INDEX]=='.'){
         /*If it's .entry we deal with it in the second pass*/
-        if(strcmp(word, ".entry")==ERROR_F){
+        if(strcmp(word, ".entry")==SAME){
             ptr_line=extract_word(ptr_line,word,IS_NOT_REGISTER );
             /* If the label name does not exist */
             if(word[FIRST_INDEX]=='\0'){
@@ -86,7 +86,7 @@ while(fgets(line, sizeof(line),am_file) != NULL){
 
             }else{
                 /* If there are no errors, add the label to the entry list and change its status */
-                if(add_ext_ent(ent_list,current_symbol->name,current_symbol->address)==ERROR_F){
+                if(add_ext_ent(ent_list,current_symbol->name,current_symbol->address)==MEMORY_ERROR){
                     fprintf(stderr,"there is an error,in file %s on line %d memory allocation failed for new entry node: %s.\n",file_name,line_number,current_symbol->name);
                     
                     if (am_file!= NULL) {
@@ -118,7 +118,7 @@ while(fgets(line, sizeof(line),am_file) != NULL){
             continue;
         }
         /* Jump to address within a register already handled in the first pass */
-        if(target[FIRST_INDEX]=='$'&&strcmp(inst->name,"jmp")==ERROR_F) {
+        if(target[FIRST_INDEX]=='$'&&strcmp(inst->name,"jmp")==SAME) {
             ic+=BYTES_PER_WORD;
             continue;
         }
@@ -137,7 +137,7 @@ while(fgets(line, sizeof(line),am_file) != NULL){
                 /* If a label is in another file (extern) then we put 0 */
                 address_target=EXTERN_ADDRESS;
                 /*Write to the external file*/
-                if(add_ext_ent(ext_list,current_symbol->name,ic)==0){
+                if(add_ext_ent(ext_list,current_symbol->name,ic)==MEMORY_ERROR){
                     fprintf(stderr,"there is an error,in file %s on line %d memory allocation failed for new extern node: %s.\n",file_name,line_number,current_symbol->name);
                    
                     if (am_file != NULL) {

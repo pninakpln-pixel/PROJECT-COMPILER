@@ -468,9 +468,9 @@ int first_pass(char *file_name, Symbol **symbol_head, unsigned char *code_img, c
 
     while (fgets(line, MAX_LINE_LENGTH, am_file) != NULL) {
         char *line_ptr = line;
-        char word[MAX_WORD_LEN];
+        char word[MAX_WORD_LENGTH];
         int exist_label = OFF;
-        char label_name[MAX_WORD_LEN];
+        char label_name[MAX_WORD_LENGTH];
         int process_instruction_status;
 
         line[strlen(line) - 1] = '\0';

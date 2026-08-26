@@ -79,7 +79,7 @@ int main(int argc, char *argv[]){
 
         name_len=strlen(argv[i]);
         /* Check the file extension as a valid assembly extension (.as) */
-        if(name_len<MIN_FILE_NAME_LENGTH || strcmp(argv[i]+name_len-LEN_AS,".as") != 0) {
+        if(name_len<MIN_FILE_NAME_LENGTH || strcmp(argv[i]+name_len-LEN_AS,".as")!= 0) {
         fprintf(stderr,"Error, missing .as ending in file %s.\n", argv[i]);
         continue;
         }
@@ -96,7 +96,7 @@ int main(int argc, char *argv[]){
         printf("\nProcessing a file name: %s, at location %d/%d \n",argv[i],i,argc-1);
         printf("Running pre_assembler (Macro Deployment).\n");
         /*Deploy macros and create an extended source file (.am) */
-        if(pre_assembler(argv[i])==FALSE){
+        if(pre_assembler(argv[i])==ERROR_F){
             fprintf(stderr,"There are errors during macro expansion in file %s,skipping this file\n",argv[i]);
             continue;
         }else{
@@ -106,12 +106,12 @@ int main(int argc, char *argv[]){
         name_file_am=make_new_name_file(argv[i],".am");
         if(name_file_am==NULL){
             fprintf(stderr,"there is an errors,in file %s memory allocation failed for name_file_am.\n",argv[i]);
-            continue;
+            exit(ERROR_EXIT);
         }
 
         printf("Running first pass.\n");
         first_status=first_pass(name_file_am,&symbol_list,code_img,&data_img);
-        if(first_status==FALSE||first_status==MEMORY_ERROR){
+        if(first_status==ERROR_F||first_status==MEMORY_ERROR){
             fprintf(stderr,"There are errors during first_pass in file %s,skipping this file\n",argv[i]);
             /*free in case of error*/
             if (symbol_list != NULL) {
@@ -135,7 +135,7 @@ int main(int argc, char *argv[]){
         
         printf("Running second pass.\n");
         pass_status=second_pass(name_file_am,symbol_list,code_img,&ext_list,&ent_list);
-        if(pass_status==FALSE|| pass_status==MEMORY_ERROR){
+        if(pass_status==ERROR_F || pass_status==MEMORY_ERROR){
             fprintf(stderr,"There are errors during second pass in file %s,skipping output file creation\n",argv[i]);
             /*free in case of error*/
             free(name_file_am);
@@ -167,6 +167,7 @@ int main(int argc, char *argv[]){
             name_file_ob=make_new_name_file(argv[i],".ob");
             if (name_file_ob==NULL){
                 fprintf(stderr,"There is an erroro, memory allocation failed for .ob file name in file %s.\n",argv[i]);
+                exit(ERROR_EXIT);
             }else{
                 file_ob=fopen(name_file_ob,"w");
                 if(file_ob==NULL){
@@ -199,6 +200,7 @@ int main(int argc, char *argv[]){
                 name_file_ent=make_new_name_file(argv[i],".ent");
                 if(name_file_ent==NULL){
                     fprintf(stderr,"There is an erroro, memory allocation failed for .ent file name in file %s.\n",argv[i]);
+                    exit(ERROR_EXIT);
                 }else{
                     file_ent=fopen(name_file_ent, "w");
                     if(file_ent == NULL){
@@ -223,6 +225,7 @@ int main(int argc, char *argv[]){
                 name_file_ext=make_new_name_file(argv[i],".ext");
                 if(name_file_ext==NULL){
                     fprintf(stderr,"There is an erroro, memory allocation failed for .ext file name in file %s.\n",argv[i]);
+                    exit(ERROR_EXIT);
                 }else{
                     file_ext=fopen(name_file_ext,"w");
                     if(file_ext == NULL){

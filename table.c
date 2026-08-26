@@ -8,14 +8,13 @@ int add_ext_ent(EXT_ENT_NODE **head, char *name, int address){
     EXT_ENT_NODE *new_node=(EXT_ENT_NODE *)malloc(sizeof(EXT_ENT_NODE));
     if(new_node == NULL) 
     { 
-        return 0;
+        return MEMORY_ERROR;
     }
-    strncpy(new_node->name, name,31);
-    new_node->name[31] ='\0';
-    new_node->address = address;
-    new_node->next = *head;
-    *head = new_node;
-    return 1;
+    strcpy(new_node->name,name);
+    new_node->address =address;
+    new_node->next=*head;
+    *head=new_node;
+    return SUCCESS_F;
 }
 
 
@@ -35,7 +34,7 @@ Symbol *find_symbol(Symbol *head, char *name) {
     Symbol *current = head;
 
     while (current != NULL) {
-        if (strcmp(current->name, name) == 0)
+        if (strcmp(current->name, name)==SAME)
             return current;
         current = current->next;
     }
@@ -48,43 +47,43 @@ Symbol *find_symbol(Symbol *head, char *name) {
 int add_symbol(Symbol **head, char *name, int address, SymbolType type, int line_number, char *file_name) {
     Symbol *new_symbol;
 
-    if (!is_valide_name(name, line_number, file_name, 0)) return 0;
+    if (!is_valide_name(name, line_number, file_name,IS_NOT_MACRO)) return ERROR_F;
 
     if (find_symbol(*head, name) != NULL) {
         if (type != SYMBOL_EXTERN)
             fprintf(stderr,"Error at file: %s, line %d:\nSymbol '%s' is already defined.\n", file_name, line_number, name);
         else if ((find_symbol(*head, name))->type != SYMBOL_EXTERN)
             fprintf(stderr,"Error at file: %s, line %d:\nSymbol '%s' is already defined as not external.\n" ,file_name, line_number, name);
-        return 0;
+        return ERROR_F;
     }
 
     new_symbol = (Symbol *)malloc(sizeof(Symbol));
     if (new_symbol == NULL) {
         fprintf(stderr,"Error at file: %s, line %d:\nMemory allocation failed for symbol %s\n", file_name, line_number, name);
-        return -1;
+        return MEMORY_ERROR;
     }
 
     strcpy(new_symbol->name, name);
     new_symbol->address = address;
     new_symbol->type = type;
-    new_symbol->is_entry = 0;
+    new_symbol->is_entry = IS_NOT_ENTRY;
 
     new_symbol->next = *head;
     *head = new_symbol;
 
-    return 1; 
+    return SUCCESS_F; 
 }
 
 /*After first pass add ic to the address of every data symbol*/
-int update_data_symbols_address(Symbol *head, int ic) {
+int update_data_symbols_address(Symbol *head,int ic) {
     Symbol *current = head;
 
     while (current != NULL) {
         if (current->type == SYMBOL_DATA)
-            (current->address) += ic;
+            (current->address) +=ic;
         current = current->next;
     }
-    return 1;
+    return SUCCESS_F;
 }
 
 
@@ -100,8 +99,9 @@ int free_symbol(Symbol **head) {
     }
 
     *head = NULL;
-    return 0;
+    return SUCCESS_F;
 }
+
 const Instruction INSTRUCTION_TABLE[] = {
     /* פקודות R */
     {"add",  TYPE_R_ALU, 0, 1},
@@ -147,7 +147,7 @@ const Instruction *find_instruction(char *cmd_name) {
 
     /* סריקת טבלת ההוראות והשוואת השם */
     for (i = 0; i < NUM_INSTRUCTIONS; i++) {
-        if (strcmp(INSTRUCTION_TABLE[i].name, cmd_name) == 0) {
+        if (strcmp(INSTRUCTION_TABLE[i].name, cmd_name)==SAME) {
             return &INSTRUCTION_TABLE[i]; /* נמצאה התאמה */
         }
     }
