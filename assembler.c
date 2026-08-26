@@ -57,36 +57,36 @@ int main(int argc, char *argv[]){
     EXT_ENT_NODE *ent_list=NULL;/* Head of entry label list */
     EXT_ENT_NODE *ext_list=NULL;/* Head of extern label list */
     Symbol *symbol_list=NULL;/* Head of symbol table list */
-    unsigned char code_img[4096];/*array for the code memory */
+    unsigned char code_img[MEMORY_SIZE];/*array for the code memory */
     char *data_img=NULL;/* array for the data memory */
 
-    int name_len=0;/* File name length */
+    int name_len=START_VALUE;/* File name length */
     
     printf("Welcome to the Assembler Program!\n\n");
     /* Check if there are arguments on the command line */
-    if(argc < 2){
-        fprintf(stderr,"There is an error,no input files, please enter files like %s <file1.as>...\n",argv[0]);
-        return 1;
+    if(argc <MIN_ARG){
+        fprintf(stderr,"There is an error,no input files, please enter files like %s <file1.as>...\n",argv[FIRST_INDEX]);
+        return ERROR_MAIN;
     }
-    printf("Starting assembler processing, there are %d files to process.\n",argc-1);
+    printf("Starting assembler processing, there are %d files to process.\n",argc-NO_FILE_ARG);
    
     /* Main loop: individual processing for each input file */
     for(i=1; i<argc; i++){
         /* Initial reset of the memory image arrays */
-        for (m=0; m<4096; m++) {
-        code_img[m]=0;
+        for (m=0; m<MEMORY_SIZE ; m++) {
+        code_img[m]=ARRAY_UPDATE;
         }
 
         name_len=strlen(argv[i]);
         /* Check the file extension as a valid assembly extension (.as) */
-        if (name_len<4 || strcmp(argv[i]+name_len-3,".as") != 0) {
+        if(name_len<MIN_FILE_NAME_LENGTH || strcmp(argv[i]+name_len-LEN_AS,".as") != 0) {
         fprintf(stderr,"Error, missing .as ending in file %s.\n", argv[i]);
         continue;
         }
         
         /* Initialize counter values ​​and pointers for processing the current file */
-        ICF=100;
-        DCF=0;
+        ICF=IC_START_VALUE ;
+        DCF= DC_START_VALUE ;
         name_file_am=NULL;
         ent_list=NULL;
         ext_list=NULL;
@@ -96,7 +96,7 @@ int main(int argc, char *argv[]){
         printf("\nProcessing a file name: %s, at location %d/%d \n",argv[i],i,argc-1);
         printf("Running pre_assembler (Macro Deployment).\n");
         /*Deploy macros and create an extended source file (.am) */
-        if(pre_assembler(argv[i])==0){
+        if(pre_assembler(argv[i])==FALSE){
             fprintf(stderr,"There are errors during macro expansion in file %s,skipping this file\n",argv[i]);
             continue;
         }else{
@@ -111,7 +111,7 @@ int main(int argc, char *argv[]){
 
         printf("Running first pass.\n");
         first_status=first_pass(name_file_am,&symbol_list,code_img,&data_img);
-        if(first_status==0||first_status==-1){
+        if(first_status==FALSE||first_status==MEMORY_ERROR){
             fprintf(stderr,"There are errors during first_pass in file %s,skipping this file\n",argv[i]);
             /*free in case of error*/
             if (symbol_list != NULL) {
@@ -121,9 +121,9 @@ int main(int argc, char *argv[]){
                 free(data_img);
             }
             /* Final stop if this is a malloc error */
-            if(first_status==-1) {
+            if(first_status==MEMORY_ERROR) {
                 fprintf(stderr,"There is a memory error in file %s. Exiting the program.\n",argv[i]);
-                exit(1);
+                exit(ERROR_EXIT);
             }
             continue; 
         }else{
@@ -135,7 +135,7 @@ int main(int argc, char *argv[]){
         
         printf("Running second pass.\n");
         pass_status=second_pass(name_file_am,symbol_list,code_img,&ext_list,&ent_list);
-        if(pass_status==0 || pass_status==-1){
+        if(pass_status==FALSE|| pass_status==MEMORY_ERROR){
             fprintf(stderr,"There are errors during second pass in file %s,skipping output file creation\n",argv[i]);
             /*free in case of error*/
             free(name_file_am);
@@ -153,9 +153,9 @@ int main(int argc, char *argv[]){
                 free_ext_ent(ext_list);
             }
             /* Final stop if this is a malloc error */
-            if(pass_status==-1){
+            if(pass_status==MEMORY_ERROR){
                 fprintf(stderr,"There is a memory error in file %s. Exiting the program.\n",argv[i]);
-                exit(1);
+                exit(ERROR_EXIT);
             }
             /* If this is just a syntax error, move to the next file */
             continue;
@@ -173,17 +173,17 @@ int main(int argc, char *argv[]){
                     fprintf(stderr,"there is an error, cannot open output file %s.\n",name_file_ob);
                 }else{
                     /* Writing a header: the number of instruction and the number of data in memory */
-                    fprintf(file_ob,"     %d %d\n",ICF-100,DCF);
+                    fprintf(file_ob,"     %d %d\n",ICF-IC_START_VALUE,DCF);
                     /* Write the instruction image in Little-Endian format (4 bytes per line) */
-                    for(j=100;j<ICF; j+=4){
-                        int index=j-100;
-                        fprintf(file_ob,"%04d %02X %02X %02X %02X\n",j,code_img[index],code_img[index+1],code_img[index+2],code_img[index+3]);
+                    for(j=IC_START_VALUE;j<ICF; j+=BYTES_PER_WORD){
+                        int index=j-IC_START_VALUE;
+                        fprintf(file_ob,"%04d %02X %02X %02X %02X\n",j,code_img[index],code_img[index+SECOND_BYTE],code_img[index+THIRD_BYTE],code_img[index+FOURTH_BYTE]);
                     }
-                    /* Writing the data image 4 bytes in a row */
-                    for (j=0;j<DCF;j+=4) {
+                    /* Writing the data image up to 4 bytes per line*/
+                    for (j=0;j<DCF;j+=BYTES_PER_WORD) {
                         fprintf(file_ob,"%04d",ICF+j);
 
-                        for(k=0; k<4 && (j+k)<DCF; k++) {
+                        for(k=0; k<BYTES_PER_WORD && (j+k)<DCF; k++) {
                             fprintf(file_ob," %02X",(unsigned int)(data_img[j+k] & 0xFF));
                         }
                         fprintf(file_ob, "\n");
@@ -258,5 +258,5 @@ int main(int argc, char *argv[]){
             printf("Assembly complete for file %s.\n",argv[i]);           
         }
     }
-    return 0;
+    return SUCCESS_MAIN;
 }

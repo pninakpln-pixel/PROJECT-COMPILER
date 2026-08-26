@@ -28,24 +28,24 @@
  
 int second_pass(char *file_name,Symbol *symbol_list,unsigned char *code_img,EXT_ENT_NODE **ext_list, EXT_ENT_NODE **ent_list){
 FILE *am_file;/* The file we are going to read from */   
-int line_number = 0;/* Count what line we are on so we can print errors */
-int ic = 100;/* Instruction counter, starting from 100 as required*/
-int error_found = 0;/* A flag that says if we found an error, no error, this is 0*/
+int line_number=START_VALUE;/* Count what line we are on so we can print errors */
+int ic=IC_START_VALUE;/* Instruction counter, starting from 100 as required*/
+int error_found=START_VALUE;/* A flag that says if we found an error, no error, this is 0*/
 char *ptr_line;/* Variable that runs on the line */
-char line[82];/* The array that holds the entire line we read from the file */
-char target[32];/* Holds the target label name*/
-char word[32];/* Holds the word we are currently checking */
+char line[MAX_LINE_LENGTH];/* The array that holds the entire line we read from the file */
+char target[MAX_LABEL_LENGTH];/* Holds the target label name*/
+char word[MAX_WORD_LENGTH];/* Holds the word we are currently checking */
 Symbol *current_symbol=NULL;/* Pointer to find a label from the symbol table */
-int index=0;/*The location in the machine code array*/
-unsigned long address_target=0;/* The address of the destination to jump to */
+int index=START_VALUE;/*The location in the machine code array*/
+unsigned long address_target=START_VALUE;/* The address of the destination to jump to */
  const Instruction *inst=NULL;/* Pointer to the current instruction data from the instruction table */
-int dis=0;/* The distance we need to jump (for branch commands) */
+int dis=START_VALUE;/* The distance we need to jump (for branch commands) */
 /* Try to open the file. If it can't, print an error */
 am_file=fopen(file_name,"r");
 
 if(am_file==NULL){
     fprintf(stderr,"there is an error,the file %s cannot open in the second pass.\n.",file_name);
-    return 0;
+    return ERROR_F;
 }
 /* Read the file line by line until it ends */
 while(fgets(line, sizeof(line),am_file) != NULL){
@@ -92,7 +92,7 @@ while(fgets(line, sizeof(line),am_file) != NULL){
                     if (am_file!= NULL) {
                         fclose(am_file);
                     }
-                    return -1;/* Return -1 as a memory error indicator */
+                    return MEMORY_ERROR;/* Return -1 as a memory error indicator */
                 } 
                 current_symbol->is_entry = 1;
             }
@@ -210,9 +210,9 @@ while(fgets(line, sizeof(line),am_file) != NULL){
 }
 fclose(am_file);
 if(error_found == 1){
-    return 0; /*If we found at least one error along the way - we will return 0.*/
+    return ERROR_F; /*If we found at least one error along the way - we will return 0.*/
 }else{
-    return 1; /* No errors here, return 1 */
+    return SUCCESS_F; /* No errors here, return 1 */
 }
 }
 

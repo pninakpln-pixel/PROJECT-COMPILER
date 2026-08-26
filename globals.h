@@ -8,18 +8,36 @@
 
 
 #define MEMORY_SIZE 4096/* Maximum array size in computer memory */
-#define MAX_LINE_LENGTH 82 /* Maximum line length: 80 characters + \n + \0 */
-#define MAX_LABEL_LENGTH 32 /* Maximum label length: 31 characters + \0 */
-#define MAX_NAME_LENGTH 32/* Maximum length for name, 31 characters + '\0' */
-
+#define MAX_LINE_LENGTH 82 /* Maximum line length, 80 characters + \n + \0 */
+#define MAX_LABEL_LENGTH 32 /* Maximum label length, 31 characters + \0 */
+#define MAX_MACRO_LENGTH 32/* Maximum length for name, 31 characters + '\0' */
+#define MAX_WORD_LENGTH 32/* Maximum length for any word */
+#define MEMORY_ERROR -1/*Returning an error in case of lack of memory space*/
 #define IC_START_VALUE 100/* The starting address of the instruction image */
 #define DC_START_VALUE 0/* The starting address of the data image */
+#define START_VALUE 0/*Initialize to value 0*/
 
-
+#define ON 1/*Flag on*/
+#define OFF 0 /*Flag off*/
 #define TRUE 1 /*Returns a logical true value.*/
 #define FALSE 0/*Returns a logical false value.*/
 #define SUCCESS_F 1/* Indicates success of a function*/
 #define ERROR_F 0/*Indicates a function failure.*/
+#define ERROR_MAIN 1/*An error was detected in main*/
+#define SUCCESS_MAIN 0/*No errors and success returned for main*/
+
+#define NO_FILE_ARG 1/* Number of arguments that are not input files */
+#define MIN_ARG 2 /* Minimum number of arguments*/
+#define FIRST_INDEX 0/*First index of the array*/
+#define ARRAY_UPDATE 0 /*Updating the array to 0 for the next file*/
+#define MIN_FILE_NAME_LENGTH 4/*Minimum valid length for an input file name*/
+#define LEN_AS 3/*The length of the file extension string (.as)*/
+#define ERROR_EXIT 1/*Exiting the program in case of a memory error*/
+#define SECOND_BYTE 1/*The second byte in a 4-byte instruction word */
+#define THIRD_BYTE 2/*The third byte in a 4-byte instruction word */
+#define FOURTH_BYTE 3/*The fourth byte in a 4-byte instruction word */
+
+
 
 extern int ICF;/*Final instruction counter value*/
 extern int DCF;/*Final data counter value*/
