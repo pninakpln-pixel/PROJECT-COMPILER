@@ -19,6 +19,8 @@
 #define START_VALUE 0/*Initialize to value 0*/
 #define END_OF_STRING_CHAR 1/* Size of space for end of string character \0 */
 #define TO_LAST_CHAR 1/* Subtract 1 to get to the last character */
+#define MAX_DATA_IMAGE_SIZE 33550236 /* Maximum code image size (machine memory size minus maximum IC size minus first 100 bytes) */
+
 #define WRONG_IMMED -32769
 #define NO_CHAR 0/* no chare in string*/
 #define ON 1/*Flag on*/
@@ -51,6 +53,37 @@
 #define BYTES_PER_HALF_WORD 2/* Number of bytes in a half word*/
 #define BITS_PER_BYTE 8
 #define EXTERN_ADDRESS 0/*Address value for extern label */
+#define DEF_FNC 0 /* default funct value */
+#define ADD_FNC 1 /* funct of add command */
+#define SUB_FNC 2 /* funct of sub command */
+#define AND_FNC 3 /* funct of and command */
+#define OR_FNC 4 /* funct of or command */
+#define NOR_FNC 5 /* funct of nor command */
+#define MOVE_FNC 1 /* funct of move command */
+#define MVHI_FNC 2 /* funct of mvhi command */
+#define MVLO_FNC 3 /* funct of mvlo command */
+
+#define R_ALU_OP 0 /* opcode for R-type ALU commands */
+#define R_MOVE_OP 1 /* opcode for R-type move commands */
+#define ADDI_OP 10 /* opcode for addi command */
+#define SUBI_OP 11 /* opcode for subi command */
+#define ANDI_OP 12 /* opcode for andi command */
+#define ORI_OP 13 /* opcode for ori command */
+#define NORI_OP 14 /* opcode for nori command */
+#define BNE_OP 15 /* opcode for bne command */
+#define BEQ_OP 16 /* opcode for beq command */
+#define BLT_OP 17 /* opcode for blt command */
+#define BGT_OP 18 /* opcode for bgt command */
+#define LB_OP 19 /* opcode for lb command */
+#define SB_OP 20 /* opcode for sb command */
+#define LW_OP 21 /* opcode for lw command */
+#define SW_OP 22 /* opcode for sw command */
+#define LH_OP 23 /* opcode for lh command */
+#define SH_OP 24 /* opcode for sh command */
+#define JMP_OP 25 /* opcode for jmp command */
+#define LA_OP 26 /* opcode for la command */
+#define CALL_OP 27 /* opcode for call command */
+#define HLT_OP 28 /* opcode for hlt command */
 
 #define MASK_OF_BYTE 0xFF/* 8-bit mask (single byte) */
 #define MASK_for_SINGLE_BIT 0x01/* 1-bit mask */

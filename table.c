@@ -104,37 +104,37 @@ int free_symbol(Symbol **head) {
 
 const Instruction INSTRUCTION_TABLE[] = {
     /* פקודות R */
-    {"add",  TYPE_R_ALU, 0, 1},
-    {"sub",  TYPE_R_ALU, 0, 2},
-    {"and",  TYPE_R_ALU, 0, 3},
-    {"or",   TYPE_R_ALU, 0, 4},
-    {"nor",  TYPE_R_ALU, 0, 5},
-    {"move", TYPE_R_MOVE, 1, 1},
-    {"mvhi", TYPE_R_MOVE, 1, 2},
-    {"mvlo", TYPE_R_MOVE, 1, 3},
+    {"add",  TYPE_R_ALU, R_ALU_OP, ADD_FNC},
+    {"sub",  TYPE_R_ALU, R_ALU_OP, SUB_FNC},
+    {"and",  TYPE_R_ALU, R_ALU_OP, AND_FNC},
+    {"or",   TYPE_R_ALU, R_ALU_OP, OR_FNC},
+    {"nor",  TYPE_R_ALU, R_ALU_OP, NOR_FNC},
+    {"move", TYPE_R_MOVE, R_MOVE_OP, MOVE_FNC},
+    {"mvhi", TYPE_R_MOVE, R_MOVE_OP, MVHI_FNC},
+    {"mvlo", TYPE_R_MOVE, R_MOVE_OP, MVLO_FNC},
 
     /* פקודות I */
-    {"addi", TYPE_I_ALU, 10, 0},
-    {"subi", TYPE_I_ALU, 11, 0},
-    {"andi", TYPE_I_ALU, 12, 0},
-    {"ori",  TYPE_I_ALU, 13, 0},
-    {"nori", TYPE_I_ALU, 14, 0},
-    {"bne",  TYPE_I_BRANCH, 15, 0},
-    {"beq",  TYPE_I_BRANCH, 16, 0},
-    {"blt",  TYPE_I_BRANCH, 17, 0},
-    {"bgt",  TYPE_I_BRANCH, 18, 0},
-    {"lb",   TYPE_I_LOAD_STORE, 19, 0},
-    {"sb",   TYPE_I_LOAD_STORE, 20, 0},
-    {"lw",   TYPE_I_LOAD_STORE, 21, 0},
-    {"sw",   TYPE_I_LOAD_STORE, 22, 0},
-    {"lh",   TYPE_I_LOAD_STORE, 23, 0},
-    {"sh",   TYPE_I_LOAD_STORE, 24, 0},
+    {"addi", TYPE_I_ALU, ADDI_OP, DEF_FNC},
+    {"subi", TYPE_I_ALU, SUBI_OP, DEF_FNC},
+    {"andi", TYPE_I_ALU, ANDI_OP, DEF_FNC},
+    {"ori",  TYPE_I_ALU, ORI_OP, DEF_FNC},
+    {"nori", TYPE_I_ALU, NORI_OP, DEF_FNC},
+    {"bne",  TYPE_I_BRANCH, BNE_OP, DEF_FNC},
+    {"beq",  TYPE_I_BRANCH, BEQ_OP, DEF_FNC},
+    {"blt",  TYPE_I_BRANCH, BLT_OP, DEF_FNC},
+    {"bgt",  TYPE_I_BRANCH, BGT_OP, DEF_FNC},
+    {"lb",   TYPE_I_LOAD_STORE, LB_OP, DEF_FNC},
+    {"sb",   TYPE_I_LOAD_STORE, SB_OP, DEF_FNC},
+    {"lw",   TYPE_I_LOAD_STORE, LW_OP, DEF_FNC},
+    {"sw",   TYPE_I_LOAD_STORE, SW_OP, DEF_FNC},
+    {"lh",   TYPE_I_LOAD_STORE, LH_OP, DEF_FNC},
+    {"sh",   TYPE_I_LOAD_STORE, SH_OP, DEF_FNC},
 
     /* פקודות J */
-    {"jmp",  TYPE_J_JUMP, 30, 0},
-    {"la",   TYPE_J_LOAD_ADD, 31, 0},
-    {"call", TYPE_J_CALL, 32, 0},
-    {"hlt", TYPE_J_HLT, 63, 0}
+    {"jmp",  TYPE_J_JUMP, JMP_OP, DEF_FNC},
+    {"la",   TYPE_J_LOAD_ADD, LA_OP, DEF_FNC},
+    {"call", TYPE_J_CALL, CALL_OP, DEF_FNC},
+    {"hlt", TYPE_J_HLT, HLT_OP, DEF_FNC}
 };
 
 
