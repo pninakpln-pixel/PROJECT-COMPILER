@@ -106,11 +106,11 @@ int copy_num_data(char **data_img, int *dc, long *values, int count, int bytes_p
     return SUCCESS_F;
 }
 
-int extract_numbers_data(char *line_ptr, long *values_out, int *count_out, int bytes_per_val, int line_number, char *file_name) {
+int extract_numbers_data(char *line_ptr, long *values_out, int *count_out, int line_number, char *file_name) {
     char *endptr;
     long val;
 
-    *count_out = start_value; 
+    *count_out = START_VALUE; 
 
     /* Check for empty line or comment at start */
     if (is_comment(line_ptr) || is_empty_line(line_ptr)){
@@ -136,6 +136,8 @@ int extract_numbers_data(char *line_ptr, long *values_out, int *count_out, int b
 
         values_out[(*count_out)++] = val;
         line_ptr = endptr;
+
+        if (is_comment(line_ptr) ||is_empty_line(line_ptr)) break;
 
         while (isspace(*line_ptr)) line_ptr++;       
         if (*line_ptr != ',' && !is_comment(line_ptr) && !is_empty_line(line_ptr)) {
@@ -698,7 +700,7 @@ int first_pass(char *file_name, Symbol **symbol_head, unsigned char *code_img, c
                     if (strcmp(word, ".db") == 0) bytes_per_val = BYTES_PER_BYTE;
                     else if (strcmp(word, ".dw") == 0) bytes_per_val = BYTES_PER_WORD;
                     else if (strcmp(word, ".dh") == 0) bytes_per_val = BYTES_PER_HALF_WORD;
-                    if (!extract_numbers_data(line_ptr, temp_arr, &count, bytes_per_val, line_num, file_name)) error_flag = ON;
+                    if (!extract_numbers_data(line_ptr, temp_arr, &count, line_num, file_name)) error_flag = ON;
                     if (copy_num_data(data_img, &dc, temp_arr, count, bytes_per_val, line_num, file_name) == MEMORY_ERROR) return MEMORY_ERROR;
                 }
                 continue; 
