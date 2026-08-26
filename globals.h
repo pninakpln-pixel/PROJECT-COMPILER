@@ -21,26 +21,14 @@
 
 
 
-/*...............................
-#define MAX_NAME_LENGTH 32
+#define MIN_BYTE_VAL 0x80 /* Minimum value for a signed byte */
+#define MAX_BYTE_VAL 0x7F /* Maximum value for a signed byte */
+#define MIN_HALF_WORD_VAL 0x8000 /* Minimum value for a signed half-word */
+#define MAX_HALF_WORD_VAL 0x7FFF /* Maximum value for a signed half-word */
+#define MIN_WORD_VAL 0x80000000 /* Minimum value for a signed word */
+#define MAX_WORD_VAL 0x7FFFFFFF /* Maximum value for a signed word */
 
-#define MAX_WORD_LEN 32
-#define BYTES_PER_BYTE 1
-#define BYTES_PER_WORD 4
-#define BYTES_PER_HALF_WORD 2
-#define BITS_PER_BYTE 8
-
-#define FIRST_INDEX 0
-
-
-#define IS_REGISTER 1
-#define IS_NOT_REGISTER 0
-
-#define IS_MACRO 1
-#define IS_NOT_MACRO 0
-
-#define WRONG_IMMED -32769
-...............................*/
+#define REGULAR_BASE 10 /* Regular base for decimal numbers */
 
 #define ON 1/*Flag on*/
 #define OFF 0 /*Flag off*/

@@ -81,6 +81,21 @@ int copy_num_data(char **data_img, int *dc, long *values, int count, int bytes_p
     /*Go through each number and store its bytes in Little-Endian order */
     for (i = 0; i < count; i++) {
         long val = values[i];
+
+        /* 3. Check number range according to byte size */
+        if (bytes_per_val == BYTES_PER_BYTE && (val < MIN_BYTE_VAL || val > MAX_BYTE_VAL)) {
+            fprintf(stderr, "Error at file: %s, line %d: Number %ld out of byte range.\n", file_name, line_number, val);
+            return ERROR_F;
+        }
+        if (bytes_per_val == BYTES_PER_HALF_WORD && (val < MIN_HALF_WORD_VAL || val > MAX_HALF_WORD_VAL)) {
+            fprintf(stderr, "Error at file: %s, line %d: Number %ld out of half-word range.\n", file_name, line_number, val);
+            return ERROR_F;
+        }
+        if (bytes_per_val == BYTES_PER_WORD && (val < MIN_WORD_VAL || val > MAX_WORD_VAL)) {
+            fprintf(stderr, "Error at file: %s, line %d: Number %ld out of word range.\n", file_name, line_number, val);
+            return ERROR_F;
+        }
+
         /* Extract each byte using bit shifting and mask */
         for (b = 0; b < bytes_per_val; b++) {
             (*data_img)[*dc] = (char)((val >> (b * BITS_PER_BYTE)) & 0xFF);
@@ -91,84 +106,47 @@ int copy_num_data(char **data_img, int *dc, long *values, int count, int bytes_p
     return SUCCESS_F;
 }
 
-
-int extract_numbers_data(char *str, long *values_out, int *count_out, int bytes_per_val, int line_number, char *file_name) {
-    char *ptr;
+int extract_numbers_data(char *line_ptr, long *values_out, int *count_out, int bytes_per_val, int line_number, char *file_name) {
     char *endptr;
-    int expecting_comma;
     long val;
 
-    if (is_comment(line_str) || !is_empty_line(line_str)){
+    *count_out = start_value; 
+
+    /* Check for empty line or comment at start */
+    if (is_comment(line_ptr) || is_empty_line(line_ptr)){
         fprintf(stderr, "Error at file: %s, line %d: Missing number argument for data directive.\n", file_name, line_number);
         return ERROR_F;
     }
 
-    ptr = str;
-    *count_out = 0;
-    expecting_comma = OFF;
+    while (!is_comment(line_ptr) && !is_empty_line(line_ptr)) {
 
-    while (*ptr != '\0') {
-        while (isspace(*ptr)) {
-            ptr++;
+        while (isspace(*line_ptr)) line_ptr++;
+        /* 1. Check for unexpected leading or double comma */
+        if (*line_ptr == ',') {
+            fprintf(stderr, "Error at file: %s, line %d: Unexpected ',' found before \"%s\".\n", file_name, line_number, line_ptr);
+            return ERROR_F;
         }
 
-        if (*ptr == '\0') {
-            break;
+        /* 2. Extract number */
+        val = strtol(line_ptr, &endptr, REGULAR_BASE);
+        if (line_ptr == endptr) {
+            fprintf(stderr, "Error at file: %s, line %d: Invalid numeric token at '%s', or trailing comma at end of line.\n", file_name, line_number, line_ptr); /*!!!!!!!!!!*/
+            return ERROR_F;
         }
 
-        if (!expecting_comma) {
-            if (*ptr == ',') {
-                fprintf(stderr, "Error at file: %s, line %d: Unexpected comma found.\n", file_name, line_number);
-                return ERROR_F;
-            }
+        values_out[(*count_out)++] = val;
+        line_ptr = endptr;
 
-            val = strtol(ptr, &endptr, 10);
-
-            if (ptr == endptr) {
-                fprintf(stderr, "Error at file: %s, line %d: Invalid numeric token at '%s'.\n", file_name, line_number, ptr);
-                return ERROR_F;
-            }
-            
-            if (bytes_per_val == BYTES_PER_BYTE && (val < -128 || val > 255)) {
-                fprintf(stderr, "Error at file: %s, line %d: %ld number out of byte range.\n", file_name, line_number, val);
-                return ERROR_F;
-            } 
-            if (bytes_per_val == BYTES_PER_HALF_WORD && (val < -32768 || val > 65535)) {
-                fprintf(stderr, "Error at file: %s, line %d: %ld number out of half word range.\n", file_name, line_number, val);
-                return ERROR_F;
-            }
-            if (bytes_per_val == BYTES_PER_WORD && (val < (-2147483647 - 1) || val > 2147483647)) {
-                fprintf(stderr, "Error at file: %s, line %d: %ld number out of word range.\n", file_name, line_number, val);
-                return ERROR_F;
-            }
-
-            values_out[*count_out] = val;
-            (*count_out)++;
-            ptr = endptr; 
-            expecting_comma = ON;   
-
-        } 
-        else {
-            
-            if (*ptr == ',') {
-                expecting_comma = OFF; 
-                ptr++;
-            } 
-            else {
-                fprintf(stderr, "Error at file: %s, line %d: Missing comma between operands before: \"%s\".\n", file_name, line_number, ptr);
-                return ERROR_F;
-            }
+        while (isspace(*line_ptr)) line_ptr++;       
+        if (*line_ptr != ',' && !is_comment(line_ptr) && !is_empty_line(line_ptr)) {
+            fprintf(stderr, "Error at file: %s, line %d: Expected ',' between operands.\n", file_name, line_number);
+            return ERROR_F;
         }
-    }
-
-    if (expecting_comma == OFF && *count_out > 0) {
-        fprintf(stderr, "Error at file: %s, line %d: Trailing comma at end of line.\n", file_name, line_number);
-        return ERROR_F;
+        line_ptr++;
     }
 
     return SUCCESS_F;
 }
-
 
 /*
  *This function process a string operand with double quotes from an .asciz directive and writes its characters followed by a null-terminator into the data image.
@@ -357,6 +335,10 @@ int process_r_instruction(const Instruction *instr, char *line_ptr, long *coded_
     }
     /* Extract rs register */
     line_ptr = extract_word(line_ptr, token_reg, IS_REGISTER);
+        if (token_reg[FIRST_INDEX] == '\0') {
+            fprintf(stderr, "Error at file: %s, line %d: Unexpected ',' before operands.\n", file_name, line_number);
+            return ERROR_F;
+        }
     if ((rs = register_num(token_reg, line_number, file_name)) == -1) return ERROR_F;
 
     /* Skip whitespace and check comma after rs */
@@ -426,6 +408,10 @@ int process_i_instruction(const Instruction *instr, char *line_ptr, long *coded_
     }
     /* Extract rs register */
     line_ptr = extract_word(line_ptr, token_reg, IS_REGISTER);
+        if (token_reg[FIRST_INDEX] == '\0') {
+            fprintf(stderr, "Error at file: %s, line %d: Unexpected ',' before operands.\n", file_name, line_number);
+            return ERROR_F;
+        }
     if ((rs = register_num(token_reg, line_number, file_name)) == -1) return ERROR_F;
 
     /* Skip whitespace and check comma after rs */
@@ -622,63 +608,84 @@ int process_instruction(char *word_instr, char *line_ptr, unsigned char *code_im
 /*==========================0==============================================================================================*/
 
 
-/* פונקציית המעבר הראשון הראשית*/
+/* 
+* This function reads an assembly file line by line tfter the Macro opening, for the first pass. It builds the symbol 
+* table, encodes data and instructions, and updates IC and DC counters. 
+* 
+* Assumptions: 
+* - file_name is a valid path to the assembly file. 
+* - symbol_head, code_img, and data_img are valid pointers. 
+* - the previause compiler level ended successfuly.
+* 
+* Algorithem: 
+* - Opens the file and sets IC and DC counters to start values. 
+* - Reads line by line, skipping empty lines and comment lines. 
+* - Checks if line starts with a label and saves the label name. 
+* - Care data directives (.db, .dh, .dw, .asciz), saves data labels with current DC and code the data into the memmory. 
+* - Care entry (.entry) and extern (.extern) directives. 
+* - Care instruction lines, saves code labels with current IC, and codes instructions. 
+* - Closes file and stops if any error was found. 
+* - Updates data symbol addresses by adding total IC (ICF) at the end. 
+*/
 int first_pass(char *file_name, Symbol **symbol_head, unsigned char *code_img, char **data_img) {
-    FILE *am_file;
-    char line[MAX_LINE_LENGTH];
-    int line_num = START_VALUE;
-    int error_flag = OFF;
-    int ic = IC_START_VALUE;
-    int dc = DC_START_VALUE;
+    FILE *am_file; /* File pointer for input file */
+    char line[MAX_LINE_LENGTH]; /* Buffer to store the current line */
+    int line_num = START_VALUE; /* Line number counter for error messages */
+    int error_flag = OFF; /* Flag to show if any error found */
+    int ic = IC_START_VALUE; /* Instruction counter */
+    int dc = DC_START_VALUE; /* Data counter */
     
+    /* Open assembly file for reading */
     am_file = fopen(file_name, "r");
     if (am_file == NULL) {
         fprintf(stderr, "Error: Opening file %s for first pass failed.\n", file_name);
         return ERROR_F;
     }
 
+    /* Read the file line by line */
     while (fgets(line, MAX_LINE_LENGTH, am_file) != NULL) {
-        char *line_ptr = line;
-        char word[MAX_WORD_LENGTH];
-        int exist_label = OFF;
-        char label_name[MAX_WORD_LENGTH];
+        char *line_ptr = line; /* Pointer for the current line */
+        char word[MAX_WORD_LENGTH]; /* Buffer to store the current word */
+        int exist_label = OFF; /* Flag to check if line has a label */
+        char label_name[MAX_WORD_LENGTH]; /* store the label name if exist */
         int process_instruction_status;
 
+        /* Remove newline character from end of line */
         line[strlen(line) - 1] = '\0';
-        
         line_num++;
         
-        /* 1. דילוג על רווחים והתעלמות משורות ריקות או הערות */
+        /* Skip empty lines and comment lines */
         if (is_comment(line_ptr) || is_empty_line(line_ptr)) {
             continue;
         }
 
-        /* 2. בדיקה האם מוגדרת תווית בתחילת השורה */
+        /* Check if the line starts with a label */
         line_ptr = extract_word(line_ptr, word, IS_NOT_REGISTER);
         if (is_label(word)) {
             exist_label = ON;
-            word[strlen(word) - 1] = '\0';  /* should delete ':' from the end of the lable name */
+            word[strlen(word) - 1] = '\0';  /* Remove ':' from end of the label name */
             strcpy(label_name ,word);
 
+            /* Ensure there is content after the label */
             if (is_comment(line_ptr) || is_empty_line(line_ptr)) {
                 fprintf(stderr, "Error at file: %s, line %d: Sould be eny instruction after lable\n", file_name, line_num);
                 error_flag = ON;
                 continue;
             }
-
+            /* Read next word after label */
             line_ptr = extract_word(line_ptr, word, IS_NOT_REGISTER);
         }
 
-        /* 3. בדיקה עבור הנחיות (.data, .asciz, .extern, .entry, .db, .dh, .dw) */
+        /* Care data and extern/entry directives that starting with '.' */
         if (word[FIRST_INDEX] == '.') {
             if (!strcmp(word, ".db") || !strcmp(word, ".dw") || !strcmp(word, ".dh") || !strcmp(word, ".asciz")) {
+                /* Add label into symbol table as data type with current DC */
                 if (exist_label) {
                     int add_symbol_status = add_symbol(symbol_head, label_name, dc, SYMBOL_DATA, line_num, file_name);
                     if (add_symbol_status == MEMORY_ERROR) return MEMORY_ERROR;
                     if (!add_symbol_status) error_flag = ON;
                 }
-                /* שלב 8: זהה את סוג הנתונים, קודד אותם לתמונת הזיכרון, והגדל את DC. 
-                   (נניח שיש פונקציית עזר שעושה זאת לפי ההנחיה והפרמטרים). */
+                /* Encode string or numbers into data memory image with increasing DC */
                 if (strcmp(word, ".asciz") == 0) {
                     int extract_copy_asciz_data_state = extract_copy_asciz_data (line_ptr, data_img, &dc, line_num, file_name);
                     if (extract_copy_asciz_data_state == MEMORY_ERROR) return MEMORY_ERROR;
@@ -686,18 +693,19 @@ int first_pass(char *file_name, Symbol **symbol_head, unsigned char *code_img, c
                 } else {
                     long temp_arr[MAX_LINE_LENGTH] = {START_VALUE};
                     int count = START_VALUE, bytes_per_val;
+
+                    /* Set byte size for each data type */
                     if (strcmp(word, ".db") == 0) bytes_per_val = BYTES_PER_BYTE;
                     else if (strcmp(word, ".dw") == 0) bytes_per_val = BYTES_PER_WORD;
                     else if (strcmp(word, ".dh") == 0) bytes_per_val = BYTES_PER_HALF_WORD;
                     if (!extract_numbers_data(line_ptr, temp_arr, &count, bytes_per_val, line_num, file_name)) error_flag = ON;
                     if (copy_num_data(data_img, &dc, temp_arr, count, bytes_per_val, line_num, file_name) == MEMORY_ERROR) return MEMORY_ERROR;
                 }
-                /* חזור ל-2 */
                 continue; 
 
             } else if (!strcmp(word, ".entry") || !strcmp(word, ".extern")) {
                 
-                /* שלב 10: אם זו הנחית entry., חזור ל-2 (מטופל במעבר שני) */
+                /* skip .entry directive, the scond pass will care it */
                 if (strcmp(word, ".entry") == 0) {
                     if (exist_label)
                         fprintf(stderr, "Warning for file: %s, line %d: A label defined at the beginning of a '.entry' line is meaningless", file_name, line_num);
@@ -710,7 +718,7 @@ int first_pass(char *file_name, Symbol **symbol_head, unsigned char *code_img, c
                     continue;
                 }
                 
-                /* שלב 11: אם זו הנחית extern., הכנס את הסמל לטבלה עם ערך 0 ומאפיין external */
+                /* Handle .extern directive: Add label to symbol table as external label with address 0 */
                 if (strcmp(word, ".extern") == 0) {
                     int add_symbol_status;
                     
@@ -731,37 +739,34 @@ int first_pass(char *file_name, Symbol **symbol_head, unsigned char *code_img, c
                 }
             }
             else {
+                /* Error the directive is unknown  */
                 fprintf(stderr, "Error at file: %s, line %d: Unknown instruction '%s'\n", file_name, line_num, word);
                 error_flag = ON;
                 continue;
             } 
         }  
-        /* שלב 12: זוהי שורת הוראה. אם יש תווית, הכנס לטבלה עם המאפיין code וערך IC */
+        /* This is a code line, save label if exist to symbol table as code type with current IC */
         if (exist_label) {
             int add_symbol_status = add_symbol(symbol_head, label_name, ic, SYMBOL_CODE, line_num, file_name);
             if (add_symbol_status == MEMORY_ERROR) return MEMORY_ERROR;
             if (!add_symbol_status) error_flag = ON;    
         }
-        /* שלבים 13, 14, 15: חפש פקודה, נתח אופרנדים, קודד והוסף לתמונת הקוד. 
-           העברנו את האחריות הזו לפונקציה מרוכזת (שתדפיס שגיאות במידת הצורך). */
-  
+       
+        /* Process instruction and write the coded word to code memory image */
         process_instruction_status = process_instruction(word, line_ptr, code_img, &ic, line_num, file_name);
         if (process_instruction_status == MEMORY_ERROR) return MEMORY_ERROR;
         if (!process_instruction_status) error_flag = ON;
-    }           
-   /* סוף לולאת הקריאה (שלב 2) */
+    }
+    
+    /* Close file after reading all lines */
     fclose(am_file);
-
-    /* שלב 17: אם נמצאו שגיאות במעבר הראשון, עצור כאן. */
+    /* Stop if any error founded */
     if (error_flag) return ERROR_F;
-
-    /* שלב 18: שמור את הערכים הסופיים של IC ושל DC (שנקראים ICF ו-DCF) */
+    /* Save final IC and DC values */
     ICF = ic;
     DCF = dc;
-    /* שלב 19: עדכן בטבלת הסמלים את ערכו של כל סמל המאופיין כ-data, ע"י הוספת הערך ICF */
+    /* Add ICF value to all data symbol addresses */
     update_data_symbols_address(*symbol_head, ic);
 
-
-    /* שלב 21: התחל מעבר שני */
-    return SUCCESS_F; /* מחזירים 1 שמסמל "הצלחה", והתוכנית הראשית תקרא ל-second_pass */
+    return SUCCESS_F;
 }
