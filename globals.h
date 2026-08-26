@@ -17,6 +17,10 @@
 #define DC_START_VALUE 0/* The starting address of the data image */
 #define START_VALUE 0/*Initialize to value 0*/
 
+#define MAX_DATA_IMAGE_SIZE 33,550,236 /* Maximum code image size (machine memory size minus maximum IC size minus first 100 bytes) */
+
+
+
 /*...............................
 #define MAX_NAME_LENGTH 32
 
@@ -58,6 +62,37 @@
 #define THIRD_BYTE 2/*The third byte in a 4-byte instruction word */
 #define FOURTH_BYTE 3/*The fourth byte in a 4-byte instruction word */
 
+#define DEF_FNC 0 /* default funct value */
+#define ADD_FNC 1 /* funct of add command */
+#define SUB_FNC 2 /* funct of sub command */
+#define AND_FNC 3 /* funct of and command */
+#define OR_FNC 4 /* funct of or command */
+#define NOR_FNC 5 /* funct of nor command */
+#define MOVE_FNC 1 /* funct of move command */
+#define MVHI_FNC 2 /* funct of mvhi command */
+#define MVLO_FNC 3 /* funct of mvlo command */
+
+#define R_ALU_OP 0 /* opcode for R-type ALU commands */
+#define R_MOVE_OP 1 /* opcode for R-type move commands */
+#define ADDI_OP 10 /* opcode for addi command */
+#define SUBI_OP 11 /* opcode for subi command */
+#define ANDI_OP 12 /* opcode for andi command */
+#define ORI_OP 13 /* opcode for ori command */
+#define NORI_OP 14 /* opcode for nori command */
+#define BNE_OP 15 /* opcode for bne command */
+#define BEQ_OP 16 /* opcode for beq command */
+#define BLT_OP 17 /* opcode for blt command */
+#define BGT_OP 18 /* opcode for bgt command */
+#define LB_OP 19 /* opcode for lb command */
+#define SB_OP 20 /* opcode for sb command */
+#define LW_OP 21 /* opcode for lw command */
+#define SW_OP 22 /* opcode for sw command */
+#define LH_OP 23 /* opcode for lh command */
+#define SH_OP 24 /* opcode for sh command */
+#define JMP_OP 25 /* opcode for jmp command */
+#define LA_OP 26 /* opcode for la command */
+#define CALL_OP 27 /* opcode for call command */
+#define HLT_OP 28 /* opcode for hlt command */
 
 
 extern int ICF;/*Final instruction counter value*/
