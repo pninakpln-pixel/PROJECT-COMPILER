@@ -12,7 +12,7 @@
 /*Structure for a node in a linked list to store extern or entry for output files */
 typedef struct EXT_ENT_NODE{
     char name[MAX_LABEL_LENGTH];/* Label name */
-    int address;/* Memory address of the label */
+    int address;/* Memory address of the label, where it is defined or where it is used */
     struct EXT_ENT_NODE *next;/* Pointer to the next node in the list */
 }EXT_ENT_NODE;
 
@@ -54,10 +54,18 @@ typedef struct Instruction{
     int funct;          
 } Instruction;
 
-/* צומת ברשימה מקושרת של סמל */
-/* סוגי סמלים בטבלה */
+/*
+* Add a new node to the external node list or to the entries node list.
+* Input:double pointer to the top of the list, label name, memory address (definition address for entry, usage address for external).
+* Output:returns SUCCESS_F in case of success, or MEMORY_ERROR in case of allocation failed.
+*/
 int add_ext_ent(EXT_ENT_NODE **head, char *name, int address);
-void free_ext_ent(EXT_ENT_NODE *head);
+/*
+*Frees all memory allocated in the external/entry list and sets the head to NULL.
+*Input:double pointer to the head of the list.
+*Output:no.
+*/
+void free_ext_ent(EXT_ENT_NODE **head);
 
 
 Symbol *find_symbol(Symbol *head, char *name);

@@ -1,6 +1,15 @@
 #ifndef HELPERS_H
 #define HELPERS_H
 
+
+/*
+* This file is a header containing declarations of general helpes functions for the assembler program.
+* The functions are used to parse input lines ( comments, empty lines, labels),extract words and operands, creation output file names, and check the validity of label and macro names.
+* The functions output success/error, new strings, and new file names as needed.
+* Assumptions: All strings passed as parameters with a '\0'.
+*/
+
+
 /*
 * Checks if the line is empty or with only spaces.
 * Input:str is the string of line.

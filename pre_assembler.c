@@ -3,34 +3,22 @@
 #include "pre_assembler.h"
 #include "helpers.h"
 #include "globals.h"
-/*
-*This file has the pre-assembler.
-*Purpose of the file: 
-*Reading the assembly program source file (.as), identifying and unpacking all macros,
-*and creating an extended source file (.am) that will be passed to the next stage of the assembler.
-*Description the algorithm:
-*The program opens the file and reads it line by line.
-*When there is a keyword "mcro",the program saves the following lines to a data structure until "mcroend" is found.
-*When a call to the name of the save macro,the program writes all the saved lines into the output file.
-*Input/Output: Receives the name of the source file with the extension .as, and creates an output file with the extension .am .
-*Assumptions:
-*There are no nested macro definitions.
-*each macro is defined before it is called in the code.
-*we get a file with an .as extension.
-*/
-
 
 /*
 *The function manages the pre-assembler process.
 *Opens files, reads lines, identifies macros,saves them, parses them to the output file,
 *and finally checks for duplicates of label names with macros.
+*Assumptions:
+*There are no nested macro definitions.
+*each macro is defined before it is called in the code.
+*we get a file with an .as extension.
 *Algorithm:
 *1. Open input file (.as) and output file (.am).
 *2. Read lines in a loop. Check for length exception.
 *3. Extract words from the line for testing.
-*4.When we see "mcro": Turn on the flag and saving the following lines to a new node in a linked list.
-*5.When we see "mcroend": Turn off the flag and ending the collection of lines.
-*6.If we are in flag off and we see known macro in the macro list-writing its contents to the output file.
+*4.When we see "mcro": Check that the name is valid with no extra text, turn on the flag and save the following lines to a new node in a linked list.
+*5. When we see "mcroend": Check that there is no extra text after it, turn off the flag and end the collection of lines.
+*6. If we are in flag off and we see a known macro in the macro list: Make sure the call is alone in the line and write its contents to the output file.
 *7.If not - copying the line as it is.
 *8.Second pass: Reopen the file to make sure there are no labels that are identical to the name of an existing macro in the list.
 */

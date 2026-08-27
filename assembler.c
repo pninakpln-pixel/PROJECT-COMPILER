@@ -19,11 +19,9 @@ int DCF;
 *the program works like this:
 *The program receives the file names from the command line and processes each file separately according to the following steps
 *1. Pre-assembler: reads the .as file, identifies macro definitions,
-* parses their lines in the appropriate places, and saves the result in the .am file.
-*2. First pass: scans the .am file, checks for syntactic correctness,
-* builds the symbol table with initial addresses, and partially encodes the
-* instruction image and data image.
-*3. Second pass: Completes the binary encoding of the label addresses
+* open their lines in the appropriate places, and saves the result in the .am file.
+*2.First pass: reads the .am file, checks for syntax errors, creates the symbol table, and writer instructions and data.
+*3.Second pass: Completes the binary encoding of the label addresses
 * and branches using the symbol table, and builds the entry and extern lists.
 *Input:
 *File names passed on the command line with the extension ".as".
@@ -31,8 +29,7 @@ int DCF;
 *If no errors are detected creates an object file (.ob) , an entry file (.ent) , and an external file (.ext)
 *Frees dynamically allocated linked lists and strings .
 *Assumptions :
-*The total memory size for instructions and data does not exceed the 4096-byte limit.
-*No nested macro settings.
+*The total memory size for instructions  does not exceed the 4096-byte limit.
 */
 
 
@@ -147,10 +144,10 @@ int main(int argc, char *argv[]){
                 free_symbol(&symbol_list);
             }
             if(ent_list!=NULL){
-                free_ext_ent(ent_list);
+                free_ext_ent(&ent_list);
             }
             if(ext_list!=NULL){
-                free_ext_ent(ext_list);
+                free_ext_ent(&ext_list);
             }
             /* Final stop if this is a malloc error */
             if(pass_status==MEMORY_ERROR){

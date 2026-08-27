@@ -3,20 +3,13 @@
 #include "second_pass.h"
 #include "helpers.h"
 #include "globals.h"
-/*
-*Program goal: Complete translation of source code into binary machine code.
-*Read the file again line by line. Use the symbol table we already built in the first pass
-*to complete the addresses we were missing (in J-type jump instructions) and calculate distances (in I-type instructions).
-*We also collect all the labels that were defined as entry or extern and put them into lists.
-*Input: File name (am), the symbol table from the previous pass, the machine code array, and empty lists.
-*Output: complete and finally prepared machine code (code_img), and lists of entry and extern symbols.
-* Assumptions: I assume that the first pass was successful and that all the labels already exist in the symbol table.
-*/
 
 /*
 *The second_pass function performs the second pass of the assembler, and completing the binary code.
 *The program scans the .am file again, and updates the address fields of the jump (J) and branch (I) instructions in a code image
 * according to the symbol table.In addition, it locates .entry instructions and update the list.
+* Assumptions:
+ *The first pass completed without errors and all labels exist in the symbol table.
 *Algorithm how the function works:
 *1. We read the .am file line by line (the instruction counter starts at 100).
 *2. Skip empty lines, comments, and label definitions.

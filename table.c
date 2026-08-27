@@ -3,34 +3,48 @@
 #include "globals.h"
 #include "helpers.h"
 
-
+/*
+* The function allocates and adds a new node to the top of the extern or entry list.
+* Algorithm:
+* Allocate memory for a new node.
+* Copy the name and address to the node.
+* Link the node to the top of the list and update the main pointer.
+*/
 int add_ext_ent(EXT_ENT_NODE **head, char *name, int address){
+    /*Allocate memory for a new node */
     EXT_ENT_NODE *new_node=(EXT_ENT_NODE *)malloc(sizeof(EXT_ENT_NODE));
     if(new_node == NULL) 
     { 
         return MEMORY_ERROR;
     }
-    strcpy(new_node->name,name);
+    strcpy(new_node->name,name);/*Copying the label name and the address according to the list*/
     new_node->address =address;
     new_node->next=*head;
-    *head=new_node;
+    *head=new_node;/*Update the head of the list to the new node */
     return SUCCESS_F;
 }
 
 
-
-void free_ext_ent(EXT_ENT_NODE *head) {
-    EXT_ENT_NODE *current = head;
-    EXT_ENT_NODE *temp;
-    while (current != NULL) {
+/*
+* The function frees all the dynamic memory in the extern/entry list, and resets the pointer to NULL.
+* Algorithm:
+* Run each node in the list and free allocated memory.
+* Reset the original pointer of the head of the list to NULL when finished.
+*/
+void free_ext_ent(EXT_ENT_NODE **head){
+    EXT_ENT_NODE *current=*head;/*Get the address of the head of the list */
+    EXT_ENT_NODE *temp;/*Temp to save node */
+    while(current!=NULL)
+    {
         temp = current;
         current = current->next;
-        free(temp);
+        free(temp);/* Free the node from memory */
     }
+    *head=NULL;
 }
 
-/*Function to find a symbol in the list by this name*/
-Symbol *find_symbol(Symbol *head, char *name) {
+
+Symbol *find_symbol(Symbol *head, char *name){
     Symbol *current = head;
 
     while (current != NULL) {
@@ -43,7 +57,7 @@ Symbol *find_symbol(Symbol *head, char *name) {
 }
 
 
-/*Function to insert a new symbol at the beginning of the list*/
+
 int add_symbol(Symbol **head, char *name, int address, SymbolType type, int line_number, char *file_name) {
     Symbol *new_symbol;
 
@@ -74,7 +88,7 @@ int add_symbol(Symbol **head, char *name, int address, SymbolType type, int line
     return SUCCESS_F; 
 }
 
-/*After first pass add ic to the address of every data symbol*/
+/
 int update_data_symbols_address(Symbol *head,int ic) {
     Symbol *current = head;
 

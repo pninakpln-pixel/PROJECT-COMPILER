@@ -2,13 +2,6 @@
 #include "helpers.h"
 
 /*
-* This file is a header containing declarations of general helpes functions for the assembler program.
-* The functions are used to parse input lines ( comments, empty lines, labels),extract words and operands, creation output file names, and check the validity of label and macro names.
-* The functions output success/error, new strings, and new file names as needed.
-* Assumptions: All strings passed as parameters with a '\0'.
-*/
-
-/*
 * The function checks if the current line is only spaces or empty.
 * The input str is a valid string endin with '\0'.
 * The algorithm:
