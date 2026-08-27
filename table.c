@@ -47,14 +47,19 @@ Symbol *find_symbol(Symbol *head, char *name) {
 /*Function to insert a new symbol at the beginning of the list*/
 int add_symbol(Symbol **head, char *name, int address, SymbolType type, int line_number, char *file_name) {
     Symbol *new_symbol;
+    Symbol *find_symbol_status;
 
     if (!is_valide_name(name, line_number, file_name, 0)) return 0;
 
-    if (find_symbol(*head, name) != NULL) {
-        if (type != SYMBOL_EXTERN)
-            fprintf(stderr,"Error at file: %s, line %d:\nSymbol '%s' is already defined.\n", file_name, line_number, name);
-        else if ((find_symbol(*head, name))->type != SYMBOL_EXTERN)
+    find_symbol_status = find_symbol(*head, name);
+    
+    if (find_symbol_status != NULL) {
+        if (type == SYMBOL_EXTERN && find_symbol_status->type != SYMBOL_EXTERN)
             fprintf(stderr,"Error at file: %s, line %d:\nSymbol '%s' is already defined as not external.\n" ,file_name, line_number, name);
+        else if (type != SYMBOL_EXTERN && find_symbol_status->type == SYMBOL_EXTERN)
+            fprintf(stderr,"Error at file: %s, line %d:\nSymbol '%s' is already defined as external.\n" ,file_name, line_number, name);
+        else if (type != SYMBOL_EXTERN)
+            fprintf(stderr,"Error at file: %s, line %d:\nSymbol '%s' is already defined.\n", file_name, line_number, name);
         return 0;
     }
 
