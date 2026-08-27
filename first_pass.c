@@ -1,58 +1,227 @@
-#include "globals.h"
-#include "helpers.h"
 #include "first_pass.h" 
 
-/*...............................
-#define MAX_NAME_LENGTH 32
+/* 
+* This function reads an assembly file line by line tfter the Macro opening, for the first pass. It builds the symbol 
+* table, encodes data and instructions, and updates IC and DC counters. 
+* 
+* Assumptions: 
+* - file_name is a valid path to the assembly file. 
+* - symbol_head, code_img, and data_img are valid pointers. 
+* - the previause compiler level ended successfuly.
+* 
+* Algorithem: 
+* - Opens the file and sets IC and DC counters to start values. 
+* - Reads line by line, skipping empty lines and comment lines. 
+* - Checks if line starts with a label and saves the label name. 
+* - Care data directives (.db, .dh, .dw, .asciz), saves data labels with current DC and code the data into the memmory. 
+* - Care entry (.entry) and extern (.extern) directives. 
+* - Care instruction lines, saves code labels with current IC, and codes instructions. 
+* - Closes file and stops if any error was found. 
+* - Updates data symbol addresses by adding total IC (ICF) at the end. 
+*/
+int first_pass(char *file_name, Symbol **symbol_head, unsigned char *code_img, char **data_img) {
+    FILE *am_file; /* File pointer for input file */
+    char line[MAX_LINE_LENGTH]; /* Buffer to store the current line */
+    int line_num = START_VALUE; /* Line number counter for error messages */
+    int error_flag = OFF; /* Flag to show if any error found */
+    int ic = IC_START_VALUE; /* Instruction counter */
+    int dc = DC_START_VALUE; /* Data counter */
+    
+    /* Open assembly file for reading */
+    am_file = fopen(file_name, "r");
+    if (am_file == NULL) {
+        fprintf(stderr, "Error: Opening file %s for first pass failed.\n", file_name);
+        return ERROR_F;
+    }
 
-#define MAX_WORD_LEN 32
-#define BYTES_PER_BYTE 1
-#define BYTES_PER_WORD 4
-#define BYTES_PER_HALF_WORD 2
-#define BITS_PER_BYTE 8
+    /* Read the file line by line */
+    while (fgets(line, MAX_LINE_LENGTH, am_file) != NULL) {
+        char *line_ptr = line; /* Pointer for the current line */
+        char word[MAX_WORD_LENGTH]; /* Buffer to store the current word */
+        int exist_label = OFF; /* Flag to check if line has a label */
+        char label_name[MAX_WORD_LENGTH]; /* store the label name if exist */
+        int process_instruction_status;
 
-#define FIRST_INDEX 0
+        /* Remove newline character from end of line */
+        line[strlen(line) - 1] = '\0';
+        line_num++;
+        
+        /* Skip empty lines and comment lines */
+        if (is_comment(line_ptr) || is_empty_line(line_ptr)) {
+            continue;
+        }
 
+        /* Check if the line starts with a label */
+        line_ptr = extract_word(line_ptr, word, IS_NOT_REGISTER);
+        if (is_label(word)) {
+            exist_label = ON;
+            word[strlen(word) - 1] = '\0';  /* Remove ':' from end of the label name */
+            strcpy(label_name ,word);
 
-#define IS_REGISTER 1
-#define IS_NOT_REGISTER 0
+            /* Ensure there is content after the label */
+            if (is_comment(line_ptr) || is_empty_line(line_ptr)) {
+                fprintf(stderr, "Error at file: %s, line %d: Sould be eny instruction after lable\n", file_name, line_num);
+                error_flag = ON;
+                continue;
+            }
+            /* Read next word after label */
+            line_ptr = extract_word(line_ptr, word, IS_NOT_REGISTER);
+        }
 
-#define IS_MACRO 1
-#define IS_NOT_MACRO 0
+        /* Care data and extern/entry directives that starting with '.' */
+        if (word[FIRST_INDEX] == '.') {
+            if (!strcmp(word, ".db") || !strcmp(word, ".dw") || !strcmp(word, ".dh") || !strcmp(word, ".asciz")) {
+                /* Add label into symbol table as data type with current DC */
+                if (exist_label) {
+                    int add_symbol_status = add_symbol(symbol_head, label_name, dc, SYMBOL_DATA, line_num, file_name);
+                    if (add_symbol_status == MEMORY_ERROR) return MEMORY_ERROR;
+                    if (!add_symbol_status) error_flag = ON;
+                }
+                /* Encode string or numbers into data memory image with increasing DC */
+                if (strcmp(word, ".asciz") == 0) {
+                    int extract_copy_asciz_data_state = extract_copy_asciz_data (line_ptr, data_img, &dc, line_num, file_name);
+                    if (extract_copy_asciz_data_state == MEMORY_ERROR) return MEMORY_ERROR;
+                    if (!extract_copy_asciz_data_state) error_flag = ON;
+                } else {
+                    long temp_arr[MAX_LINE_LENGTH] = {START_VALUE};
+                    int count = START_VALUE, bytes_per_val;
+                    int copy_num_data_status;
 
-#define WRONG_IMMED -32769
-...............................*/
+                    /* Set byte size for each data type */
+                    if (strcmp(word, ".db") == 0) bytes_per_val = BYTES_PER_BYTE;
+                    else if (strcmp(word, ".dw") == 0) bytes_per_val = BYTES_PER_WORD;
+                    else if (strcmp(word, ".dh") == 0) bytes_per_val = BYTES_PER_HALF_WORD;
+                    if (!extract_numbers_data(line_ptr, temp_arr, &count, line_num, file_name)) error_flag = ON;
 
-/*========================================================================================================================*/
+                    copy_num_data_status = copy_num_data(data_img, &dc, temp_arr, count, bytes_per_val, line_num, file_name);
+                    if (copy_num_data_status == MEMORY_ERROR) return MEMORY_ERROR;
+                    if (!copy_num_data_status) error_flag = ON;
+                }
+                continue; 
+
+            } else if (!strcmp(word, ".entry") || !strcmp(word, ".extern")) {
+                
+                /* skip .entry directive, the scond pass will care it */
+                if (strcmp(word, ".entry") == 0) {
+                    if (exist_label)
+                        fprintf(stderr, "Warning for file: %s, line %d: A label defined at the beginning of a '.entry' line is meaningless", file_name, line_num);
+                    line_ptr = extract_word(line_ptr, word, IS_NOT_REGISTER);/*care lable operand later*/
+
+                    if (!is_comment(line_ptr) && !is_empty_line(line_ptr)) {
+                        fprintf(stderr, "Error at file: %s, line %d: Invalid characters at the end of the line: \"%s\"\n", file_name, line_num, line_ptr);
+                        error_flag = ON;
+                    }                    
+                    continue;
+                }
+                
+                /* Handle .extern directive: Add label to symbol table as external label with address 0 */
+                if (strcmp(word, ".extern") == 0) {
+                    int add_symbol_status;
+                    
+                    if (exist_label)
+                      fprintf(stderr, "Warning for file: %s, line %d: A label defined at the beginning of a '.extern' line is meaningless", file_name, line_num);
+                
+                    line_ptr = extract_word(line_ptr, label_name, IS_NOT_REGISTER);
+                    
+                    add_symbol_status = add_symbol(symbol_head, label_name, 0, SYMBOL_EXTERN, line_num, file_name);
+                    if (add_symbol_status == MEMORY_ERROR) return MEMORY_ERROR;
+                    if (!add_symbol_status) error_flag = ON;
+
+                    if (!is_comment(line_ptr) && !is_empty_line(line_ptr)) {
+                        fprintf(stderr, "Error at file: %s, line %d: Invalid characters at the end of the line: \"%s\"\n", file_name, line_num, line_ptr);
+                        error_flag = ON;
+                    }
+                    continue;
+                }
+            }
+            else {
+                /* Error the directive is unknown  */
+                fprintf(stderr, "Error at file: %s, line %d: Unknown instruction '%s'\n", file_name, line_num, word);
+                error_flag = ON;
+                continue;
+            } 
+        }  
+        /* This is a code line, save label if exist to symbol table as code type with current IC */
+        if (exist_label) {
+            int add_symbol_status = add_symbol(symbol_head, label_name, ic, SYMBOL_CODE, line_num, file_name);
+            if (add_symbol_status == MEMORY_ERROR) return MEMORY_ERROR;
+            if (!add_symbol_status) error_flag = ON;    
+        }
+       
+        /* Process instruction and write the coded word to code memory image */
+        process_instruction_status = process_instruction(word, line_ptr, code_img, &ic, line_num, file_name);
+        if (process_instruction_status == MEMORY_ERROR) return MEMORY_ERROR;
+        if (!process_instruction_status) error_flag = ON;
+    }
+    
+    /* Close file after reading all lines */
+    fclose(am_file);
+    /* Stop if any error founded */
+    if (error_flag) return ERROR_F;
+    /* Save final IC and DC values */
+    ICF = ic;
+    DCF = dc;
+    /* Add ICF value to all data symbol addresses */
+    update_data_symbols_address(*symbol_head, ic);
+
+    return SUCCESS_F;
+}
+
 /*
- * This function reallocates the memory buffer reserved for the data image to store additional sata.
+ * This function reads numeric values from a data directive line,  and stores the numbers in a temporary array. 
  *
  * Assumptions:
- * - data_img is a valid pointer to a dynamically allocated buffer (or NULL initially).
- * - dc represents the current size of the data image in bytes.
- * - bytes_to_add is a positive number of bytes to allocate.
- *
- * Algorithm:
- * Resizes the data buffer using realloc to fit the new total byte count, 
- * updates the pointer and return 1 if success, or -1 if memory allocation failure.
+ * - line_ptr points to the remaining arguments text part of a data directive line (.db, .dh, .dw).
+ * - values_out is a valid pointer to an array with enough space for extracted numbers.
+ * 
+ * Algorithem:
+ * extracts each number using strtol and stores it in the temporery array, checks for invalid leading or double or missing commas.
  */
-int make_data_space(char **data_img, int dc, int bytes_to_add, int line_number, char *file_name) {
-    if ((dc+bytes_to_add) > MAX_DATA_IMAGE_SIZE) {
-        fprintf(stderr, "Error at file: %s, line %d: /* No more space in the data image.\n", file_name, line_number);
-        return MEMORY_ERROR;
+int extract_numbers_data(char *line_ptr, long *values_out, int *count_out, int line_number, char *file_name) {
+    char *endptr;
+    long val;
+
+    *count_out = START_VALUE; 
+
+    /* Check if there is no numbers */
+    if (is_comment(line_ptr) || is_empty_line(line_ptr)){
+        fprintf(stderr, "Error at file: %s, line %d: Missing number argument for data directive.\n", file_name, line_number);
+        return ERROR_F;
     }
-    
-    /* Attempt to make memory allocation for the new data bytes */
-    char *temp = (char *)realloc(*data_img, dc + bytes_to_add);
-    
-    /* Check whether memory allocation succeeded */
-    if (temp == NULL) {
-        fprintf(stderr, "Error at file: %s, line %d: Memory allocation for data image failed!\n", file_name, line_number);
-        return MEMORY_ERROR;
+
+    /* Loop to process all numbers in the line */
+    while (!is_comment(line_ptr) && !is_empty_line(line_ptr)) {
+
+        /* Skip leading whitespaces */
+        while (isspace(*line_ptr)) line_ptr++;
+
+        /* 1. Check for unexpected comma */
+        if (*line_ptr == ',') {
+            fprintf(stderr, "Error at file: %s, line %d: Unexpected ',' found before \"%s\".\n", file_name, line_number, line_ptr);
+            return ERROR_F;
+        }
+
+        /* Extract the next number */
+        val = strtol(line_ptr, &endptr, REGULAR_BASE);
+        if (line_ptr == endptr) {
+            fprintf(stderr, "Error at file: %s, line %d: Invalid numeric token at '%s', or trailing comma at end of line.\n", file_name, line_number, line_ptr); /*!!!!!!!!!!*/
+            return ERROR_F;
+        }
+
+        /* Store the number if valid */
+        values_out[(*count_out)++] = val;
+        line_ptr = endptr;
+
+        if (is_comment(line_ptr) ||is_empty_line(line_ptr)) break;
+
+        /* Skip whitespace and ensure exists comma between numbers */
+        while (isspace(*line_ptr)) line_ptr++;       
+        if (*line_ptr != ',' && !is_comment(line_ptr) && !is_empty_line(line_ptr)) {
+            fprintf(stderr, "Error at file: %s, line %d: Expected ',' between operands.\n", file_name, line_number);
+            return ERROR_F;
+        }
+        line_ptr++; /* Skip thecomma */
     }
-    
-    /* Update the original pointer to the new memory address */
-    *data_img = temp;
     return SUCCESS_F;
 }
 
@@ -106,47 +275,37 @@ int copy_num_data(char **data_img, int *dc, long *values, int count, int bytes_p
     return SUCCESS_F;
 }
 
-int extract_numbers_data(char *line_ptr, long *values_out, int *count_out, int line_number, char *file_name) {
-    char *endptr;
-    long val;
+/*
+ * This function reallocates the memory buffer reserved for the data image to store additional sata.
+ *
+ * Assumptions:
+ * - data_img is a valid pointer to a dynamically allocated buffer (or NULL initially).
+ * - dc represents the current size of the data image in bytes.
+ * - bytes_to_add is a positive number of bytes to allocate.
+ *
+ * Algorithm:
+ * Resizes the data buffer using realloc to fit the new total byte count, 
+ * updates the pointer and return 1 if success, or -1 if memory allocation failure.
+ */
+int make_data_space(char **data_img, int dc, int bytes_to_add, int line_number, char *file_name) {
+    char *temp;
 
-    *count_out = START_VALUE; 
-
-    /* Check for empty line or comment at start */
-    if (is_comment(line_ptr) || is_empty_line(line_ptr)){
-        fprintf(stderr, "Error at file: %s, line %d: Missing number argument for data directive.\n", file_name, line_number);
-        return ERROR_F;
+    if ((dc+bytes_to_add) > MAX_DATA_IMAGE_SIZE) {
+        fprintf(stderr, "Error at file: %s, line %d: No more space in the data image.\n", file_name, line_number);
+        return MEMORY_ERROR;
     }
-
-    while (!is_comment(line_ptr) && !is_empty_line(line_ptr)) {
-
-        while (isspace(*line_ptr)) line_ptr++;
-        /* 1. Check for unexpected leading or double comma */
-        if (*line_ptr == ',') {
-            fprintf(stderr, "Error at file: %s, line %d: Unexpected ',' found before \"%s\".\n", file_name, line_number, line_ptr);
-            return ERROR_F;
-        }
-
-        /* 2. Extract number */
-        val = strtol(line_ptr, &endptr, REGULAR_BASE);
-        if (line_ptr == endptr) {
-            fprintf(stderr, "Error at file: %s, line %d: Invalid numeric token at '%s', or trailing comma at end of line.\n", file_name, line_number, line_ptr); /*!!!!!!!!!!*/
-            return ERROR_F;
-        }
-
-        values_out[(*count_out)++] = val;
-        line_ptr = endptr;
-
-        if (is_comment(line_ptr) ||is_empty_line(line_ptr)) break;
-
-        while (isspace(*line_ptr)) line_ptr++;       
-        if (*line_ptr != ',' && !is_comment(line_ptr) && !is_empty_line(line_ptr)) {
-            fprintf(stderr, "Error at file: %s, line %d: Expected ',' between operands.\n", file_name, line_number);
-            return ERROR_F;
-        }
-        line_ptr++;
+    
+    /* Attempt to make memory allocation for the new data bytes */
+    *temp = (char *)realloc(*data_img, dc + bytes_to_add);
+    
+    /* Check whether memory allocation succeeded */
+    if (temp == NULL) {
+        fprintf(stderr, "Error at file: %s, line %d: Memory allocation for data image failed!\n", file_name, line_number);
+        return MEMORY_ERROR;
     }
-
+    
+    /* Update the original pointer to the new memory address */
+    *data_img = temp;
     return SUCCESS_F;
 }
 
@@ -164,7 +323,7 @@ int extract_copy_asciz_data (char *line_str, char **data_img, int *dc, int line_
     /* Store first DC position to restore it if something wrong */
     int start_dc = *dc;
 
-    if (is_comment(line_str) || !is_empty_line(line_str)){
+    if (is_comment(line_str) || is_empty_line(line_str)){
         fprintf(stderr, "Error at file: %s, line %d: Missing string argument for .asciz directive.\n", file_name, line_number);
         return ERROR_F;
     }
@@ -451,7 +610,6 @@ int process_i_instruction(const Instruction *instr, char *line_ptr, long *coded_
     if ((rt = register_num(token_reg, line_number, file_name)) == -1) return ERROR_F;
 
     if (instr->type == TYPE_I_BRANCH) {
-           
         /* Skip whitespace and check comma after rt for branch instruction */
         while (isspace((unsigned char)*line_ptr)) line_ptr++;
         if (*line_ptr != ',') {
@@ -465,7 +623,7 @@ int process_i_instruction(const Instruction *instr, char *line_ptr, long *coded_
             fprintf(stderr, "Error at file: %s, line %d: Too much ',' between operands, Or missing operands.\n", file_name, line_number);
             return ERROR_F;
         }
-        if (!is_valid_name(token_reg , line_number, file_name, IS_NOT_MACRO)) return ERROR_F; /*בדיקה ששם התווית הוא שם הגיוני לתווית*/    
+        if (!is_valide_name(token_reg , line_number, file_name, IS_NOT_MACRO)) return ERROR_F;     
     }
 
     /* Make sure no extra trailing characters exist at the end of the line */
@@ -510,7 +668,7 @@ int process_j_instruction(const Instruction *instr, char *line_ptr, long *coded_
                 reg = 1;
             }
         }
-        else if (!is_valid_name(token, line_number, file_name, IS_NOT_MACRO)) return ERROR_F; /* Validate label name syntax */
+        else if (!is_valide_name(token, line_number, file_name, IS_NOT_MACRO)) return ERROR_F; /* Validate label name syntax */
     }
 
     /* Make sure no extra trailing characters exist at the end of the line */
@@ -607,168 +765,3 @@ int process_instruction(char *word_instr, char *line_ptr, unsigned char *code_im
     return SUCCESS_F;
 }
 
-/*==========================0==============================================================================================*/
-
-
-/* 
-* This function reads an assembly file line by line tfter the Macro opening, for the first pass. It builds the symbol 
-* table, encodes data and instructions, and updates IC and DC counters. 
-* 
-* Assumptions: 
-* - file_name is a valid path to the assembly file. 
-* - symbol_head, code_img, and data_img are valid pointers. 
-* - the previause compiler level ended successfuly.
-* 
-* Algorithem: 
-* - Opens the file and sets IC and DC counters to start values. 
-* - Reads line by line, skipping empty lines and comment lines. 
-* - Checks if line starts with a label and saves the label name. 
-* - Care data directives (.db, .dh, .dw, .asciz), saves data labels with current DC and code the data into the memmory. 
-* - Care entry (.entry) and extern (.extern) directives. 
-* - Care instruction lines, saves code labels with current IC, and codes instructions. 
-* - Closes file and stops if any error was found. 
-* - Updates data symbol addresses by adding total IC (ICF) at the end. 
-*/
-int first_pass(char *file_name, Symbol **symbol_head, unsigned char *code_img, char **data_img) {
-    FILE *am_file; /* File pointer for input file */
-    char line[MAX_LINE_LENGTH]; /* Buffer to store the current line */
-    int line_num = START_VALUE; /* Line number counter for error messages */
-    int error_flag = OFF; /* Flag to show if any error found */
-    int ic = IC_START_VALUE; /* Instruction counter */
-    int dc = DC_START_VALUE; /* Data counter */
-    
-    /* Open assembly file for reading */
-    am_file = fopen(file_name, "r");
-    if (am_file == NULL) {
-        fprintf(stderr, "Error: Opening file %s for first pass failed.\n", file_name);
-        return ERROR_F;
-    }
-
-    /* Read the file line by line */
-    while (fgets(line, MAX_LINE_LENGTH, am_file) != NULL) {
-        char *line_ptr = line; /* Pointer for the current line */
-        char word[MAX_WORD_LENGTH]; /* Buffer to store the current word */
-        int exist_label = OFF; /* Flag to check if line has a label */
-        char label_name[MAX_WORD_LENGTH]; /* store the label name if exist */
-        int process_instruction_status;
-
-        /* Remove newline character from end of line */
-        line[strlen(line) - 1] = '\0';
-        line_num++;
-        
-        /* Skip empty lines and comment lines */
-        if (is_comment(line_ptr) || is_empty_line(line_ptr)) {
-            continue;
-        }
-
-        /* Check if the line starts with a label */
-        line_ptr = extract_word(line_ptr, word, IS_NOT_REGISTER);
-        if (is_label(word)) {
-            exist_label = ON;
-            word[strlen(word) - 1] = '\0';  /* Remove ':' from end of the label name */
-            strcpy(label_name ,word);
-
-            /* Ensure there is content after the label */
-            if (is_comment(line_ptr) || is_empty_line(line_ptr)) {
-                fprintf(stderr, "Error at file: %s, line %d: Sould be eny instruction after lable\n", file_name, line_num);
-                error_flag = ON;
-                continue;
-            }
-            /* Read next word after label */
-            line_ptr = extract_word(line_ptr, word, IS_NOT_REGISTER);
-        }
-
-        /* Care data and extern/entry directives that starting with '.' */
-        if (word[FIRST_INDEX] == '.') {
-            if (!strcmp(word, ".db") || !strcmp(word, ".dw") || !strcmp(word, ".dh") || !strcmp(word, ".asciz")) {
-                /* Add label into symbol table as data type with current DC */
-                if (exist_label) {
-                    int add_symbol_status = add_symbol(symbol_head, label_name, dc, SYMBOL_DATA, line_num, file_name);
-                    if (add_symbol_status == MEMORY_ERROR) return MEMORY_ERROR;
-                    if (!add_symbol_status) error_flag = ON;
-                }
-                /* Encode string or numbers into data memory image with increasing DC */
-                if (strcmp(word, ".asciz") == 0) {
-                    int extract_copy_asciz_data_state = extract_copy_asciz_data (line_ptr, data_img, &dc, line_num, file_name);
-                    if (extract_copy_asciz_data_state == MEMORY_ERROR) return MEMORY_ERROR;
-                    if (!extract_copy_asciz_data_state) error_flag = ON;
-                } else {
-                    long temp_arr[MAX_LINE_LENGTH] = {START_VALUE};
-                    int count = START_VALUE, bytes_per_val;
-
-                    /* Set byte size for each data type */
-                    if (strcmp(word, ".db") == 0) bytes_per_val = BYTES_PER_BYTE;
-                    else if (strcmp(word, ".dw") == 0) bytes_per_val = BYTES_PER_WORD;
-                    else if (strcmp(word, ".dh") == 0) bytes_per_val = BYTES_PER_HALF_WORD;
-                    if (!extract_numbers_data(line_ptr, temp_arr, &count, line_num, file_name)) error_flag = ON;
-                    if (copy_num_data(data_img, &dc, temp_arr, count, bytes_per_val, line_num, file_name) == MEMORY_ERROR) return MEMORY_ERROR;
-                }
-                continue; 
-
-            } else if (!strcmp(word, ".entry") || !strcmp(word, ".extern")) {
-                
-                /* skip .entry directive, the scond pass will care it */
-                if (strcmp(word, ".entry") == 0) {
-                    if (exist_label)
-                        fprintf(stderr, "Warning for file: %s, line %d: A label defined at the beginning of a '.entry' line is meaningless", file_name, line_num);
-                    line_ptr = extract_word(line_ptr, word, IS_NOT_REGISTER);/*care lable operand later*/
-
-                    if (!is_comment(line_ptr) && !is_empty_line(line_ptr)) {
-                        fprintf(stderr, "Error at file: %s, line %d: Invalid characters at the end of the line: \"%s\"\n", file_name, line_num, line_ptr);
-                        error_flag = ON;
-                    }                    
-                    continue;
-                }
-                
-                /* Handle .extern directive: Add label to symbol table as external label with address 0 */
-                if (strcmp(word, ".extern") == 0) {
-                    int add_symbol_status;
-                    
-                    if (exist_label)
-                      fprintf(stderr, "Warning for file: %s, line %d: A label defined at the beginning of a '.extern' line is meaningless", file_name, line_num);
-                
-                    line_ptr = extract_word(line_ptr, label_name, IS_NOT_REGISTER);
-                    
-                    add_symbol_status = add_symbol(symbol_head, label_name, 0, SYMBOL_EXTERN, line_num, file_name);
-                    if (add_symbol_status == MEMORY_ERROR) return MEMORY_ERROR;
-                    if (!add_symbol_status) error_flag = ON;
-
-                    if (!is_comment(line_ptr) && !is_empty_line(line_ptr)) {
-                        fprintf(stderr, "Error at file: %s, line %d: Invalid characters at the end of the line: \"%s\"\n", file_name, line_num, line_ptr);
-                        error_flag = ON;
-                    }
-                    continue;
-                }
-            }
-            else {
-                /* Error the directive is unknown  */
-                fprintf(stderr, "Error at file: %s, line %d: Unknown instruction '%s'\n", file_name, line_num, word);
-                error_flag = ON;
-                continue;
-            } 
-        }  
-        /* This is a code line, save label if exist to symbol table as code type with current IC */
-        if (exist_label) {
-            int add_symbol_status = add_symbol(symbol_head, label_name, ic, SYMBOL_CODE, line_num, file_name);
-            if (add_symbol_status == MEMORY_ERROR) return MEMORY_ERROR;
-            if (!add_symbol_status) error_flag = ON;    
-        }
-       
-        /* Process instruction and write the coded word to code memory image */
-        process_instruction_status = process_instruction(word, line_ptr, code_img, &ic, line_num, file_name);
-        if (process_instruction_status == MEMORY_ERROR) return MEMORY_ERROR;
-        if (!process_instruction_status) error_flag = ON;
-    }
-    
-    /* Close file after reading all lines */
-    fclose(am_file);
-    /* Stop if any error founded */
-    if (error_flag) return ERROR_F;
-    /* Save final IC and DC values */
-    ICF = ic;
-    DCF = dc;
-    /* Add ICF value to all data symbol addresses */
-    update_data_symbols_address(*symbol_head, ic);
-
-    return SUCCESS_F;
-}
