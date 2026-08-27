@@ -23,6 +23,15 @@
 
 #define WRONG_IMMED -32769
 #define NO_CHAR 0/* no chare in string*/
+#define MAX_DATA_IMAGE_SIZE 33550236 /* Maximum code image size (machine memory size minus maximum IC size minus first 100 bytes) */
+#define MIN_BYTE_VAL 0x80 /* Minimum value for a signed byte */
+#define MAX_BYTE_VAL 0x7F /* Maximum value for a signed byte */
+#define MIN_HALF_WORD_VAL 0x8000 /* Minimum value for a signed half-word */
+#define MAX_HALF_WORD_VAL 0x7FFF /* Maximum value for a signed half-word */
+#define MIN_WORD_VAL 0x80000000 /* Minimum value for a signed word */
+#define MAX_WORD_VAL 0x7FFFFFFF /* Maximum value for a signed word */
+#define REGULAR_BASE 10 /* Regular base for decimal numbers */
+
 #define ON 1/*Flag on*/
 #define OFF 0 /*Flag off*/
 #define SUCCESS_F 1/* Indicates success of a function*/
