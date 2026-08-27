@@ -27,6 +27,6 @@ LIST: .db 6,-9
 .extern val1
  .dh 27056
 K: .dw 31,-12
-END: hlt
+END hlt
 .entry K
 

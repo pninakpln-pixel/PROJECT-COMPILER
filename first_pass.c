@@ -123,7 +123,7 @@ int first_pass(char *file_name, Symbol **symbol_head, unsigned char *code_img, c
                 
                     line_ptr = extract_word(line_ptr, label_name, IS_NOT_REGISTER);
                     
-                    add_symbol_status = add_symbol(symbol_head, label_name, 0, SYMBOL_EXTERN, line_num, file_name);
+                    add_symbol_status = add_symbol(symbol_head, label_name, EXTERN_ADDRESS, SYMBOL_EXTERN, line_num, file_name);
                     if (add_symbol_status == MEMORY_ERROR) return MEMORY_ERROR;
                     if (!add_symbol_status) error_flag = ON;
 
@@ -168,14 +168,14 @@ int first_pass(char *file_name, Symbol **symbol_head, unsigned char *code_img, c
 }
 
 /*
- * This function reads numeric values from a data directive line,  and stores the numbers in a temporary array. 
+ * This function reads numeric values from a data directive line, and stores the extracted numbers in a temporary array.
  *
  * Assumptions:
- * - line_ptr points to the remaining arguments text part of a data directive line (.db, .dh, .dw).
+ * - line_ptr points to the arguments part of a data directive (.db, .dh, .dw).
  * - values_out is a valid pointer to an array with enough space for extracted numbers.
- * 
+ *
  * Algorithem:
- * extracts each number using strtol and stores it in the temporery array, checks for invalid leading or double or missing commas.
+ * Extracts each number using strtol from the line, while checks for invalid extra or missing commas, and stores it in the temporary array.
  */
 int extract_numbers_data(char *line_ptr, long *values_out, int *count_out, int line_number, char *file_name) {
     char *endptr;
@@ -267,7 +267,7 @@ int copy_num_data(char **data_img, int *dc, long *values, int count, int bytes_p
 
         /* Extract each byte using bit shifting and mask */
         for (b = 0; b < bytes_per_val; b++) {
-            (*data_img)[*dc] = (char)((val >> (b * BITS_PER_BYTE)) & 0xFF);
+            (*data_img)[*dc] = (char)((val >> (b * BITS_PER_BYTE)) & MASK_OF_BYTE);
             (*dc)++;
         }
     }
@@ -307,8 +307,14 @@ int extract_copy_asciz_data (char *line_str, char **data_img, int *dc, int line_
     if (make_data_space(data_img, *dc, MAX_LINE_LENGTH, line_number, file_name) == MEMORY_ERROR) return MEMORY_ERROR;
     
     /* Copy characters to data image until closing quote or end of string */
-    while (*line_str != '"' && *line_str != '\0')
+    while (*line_str != '"' && *line_str != '\0') {
+        if (*line_str < MIN_ASCIZ_VAL || *line_str > MAX_ASCIZ_VAL) {
+            fprintf(stderr, "Error at file: %s, line %d: Invalid character '%c' in string.\n", file_name, line_number, *line_str);
+            *dc = start_dc;
+            return ERROR_F;
+        }
         (*data_img)[(*dc)++] = *line_str++;
+    }
     /* Make sure string ends with a double quote */
     if (*line_str != '"') {
         fprintf(stderr, "Error at file: %s, line %d: String must end with \".\n", file_name, line_number);
@@ -350,7 +356,7 @@ int make_data_space(char **data_img, int dc, int bytes_to_add, int line_number, 
     }
     
     /* Attempt to make memory allocation for the new data bytes */
-    *temp = (char *)realloc(*data_img, dc + bytes_to_add);
+    temp = (char *)realloc(*data_img, dc + bytes_to_add);
     
     /* Check whether memory allocation succeeded */
     if (temp == NULL) {
@@ -439,7 +445,7 @@ int add_to_code_image(unsigned char *code_img, int *ic, long coded_word, int lin
 
     /* Split 32-bit word into 4 bytes using little endian byte ordering */  
     for (b = START_VALUE; b < BYTES_PER_WORD; b++)
-        code_img[index++] = (char)((coded_word >> (b * BITS_PER_BYTE)) & 0xFF);
+        code_img[index++] = (char)((coded_word >> (b * BITS_PER_BYTE)) & MASK_OF_BYTE);
     /* Increasing instruction counter by 4 bytes */
     *ic += BYTES_PER_WORD;
     
@@ -471,7 +477,7 @@ int process_r_instruction(const Instruction *instr, char *line_ptr, long *coded_
             fprintf(stderr, "Error at file: %s, line %d: Unexpected ',' before operands.\n", file_name, line_number);
             return ERROR_F;
         }
-    if ((rs = register_num(token_reg, line_number, file_name)) == -1) return ERROR_F;
+    if ((rs = register_num(token_reg, line_number, file_name)) == NOT_REG_VAL) return ERROR_F;
 
     if(is_comment(line_ptr) || is_empty_line(line_ptr)){
         fprintf(stderr, "Error at file: %s, line %d: Missing operands for instruction.\n", file_name, line_number);
@@ -493,7 +499,7 @@ int process_r_instruction(const Instruction *instr, char *line_ptr, long *coded_
             fprintf(stderr, "Error at file: %s, line %d: Too much ',' between operands, Or missing operands.\n", file_name, line_number);
             return ERROR_F;
         }
-        if ((rt = register_num(token_reg, line_number, file_name)) == -1) return ERROR_F;
+        if ((rt = register_num(token_reg, line_number, file_name)) == NOT_REG_VAL) return ERROR_F;
 
         if(is_comment(line_ptr) || is_empty_line(line_ptr)){
             fprintf(stderr, "Error at file: %s, line %d: Missing operands for instruction.\n", file_name, line_number);
@@ -515,7 +521,7 @@ int process_r_instruction(const Instruction *instr, char *line_ptr, long *coded_
         fprintf(stderr, "Error at file: %s, line %d: Too much ',' between operands, Or missing operands.\n", file_name, line_number);
         return ERROR_F;
     }
-    if ((rd = register_num(token_reg, line_number, file_name)) == -1) return ERROR_F;
+    if ((rd = register_num(token_reg, line_number, file_name)) == NOT_REG_VAL) return ERROR_F;
 
     /* Make sure no extra trailing characters exist at the end of the line */
     if (!is_comment(line_ptr) && !is_empty_line(line_ptr)) {
@@ -554,7 +560,7 @@ int process_i_instruction(const Instruction *instr, char *line_ptr, long *coded_
             fprintf(stderr, "Error at file: %s, line %d: Unexpected ',' before operands.\n", file_name, line_number);
             return ERROR_F;
         }
-    if ((rs = register_num(token_reg, line_number, file_name)) == -1) return ERROR_F;
+    if ((rs = register_num(token_reg, line_number, file_name)) == NOT_REG_VAL) return ERROR_F;
 
     if(is_comment(line_ptr) || is_empty_line(line_ptr)){
         fprintf(stderr, "Error at file: %s, line %d: Missing operands for instruction.\n", file_name, line_number);
@@ -584,7 +590,7 @@ int process_i_instruction(const Instruction *instr, char *line_ptr, long *coded_
         }
 
         /* Skip whitespace and check comma after immediate value */
-        while (isspace((unsigned char)*line_ptr)) line_ptr++;
+        while (isspace(*line_ptr)) line_ptr++;
         if (*line_ptr != ',') {
             fprintf(stderr, "Error at file: %s, line %d: Expected ',' between operands.\n", file_name, line_number);
             return ERROR_F;
@@ -598,7 +604,7 @@ int process_i_instruction(const Instruction *instr, char *line_ptr, long *coded_
         fprintf(stderr, "Error at file: %s, line %d: Too much ',' between operands, Or missing operands.\n", file_name, line_number);
         return ERROR_F;
     }
-    if ((rt = register_num(token_reg, line_number, file_name)) == -1) return ERROR_F;
+    if ((rt = register_num(token_reg, line_number, file_name)) == NOT_REG_VAL) return ERROR_F;
 
     if (instr->type == TYPE_I_BRANCH) {
         if(is_comment(line_ptr) || is_empty_line(line_ptr)){
@@ -644,7 +650,7 @@ int process_i_instruction(const Instruction *instr, char *line_ptr, long *coded_
  * checks end-of-line content, and constructs the 32-bit mechine instruction word.
  */
 int process_j_instruction(const Instruction *instr, char *line_ptr, long *coded_word, int line_number, char *file_name) {
-    int reg = START_VALUE, address = START_VALUE;
+    int reg = OFF, address = START_VALUE;
     char token[MAX_LINE_LENGTH];
 
     /* Extract target operand (label or register) for non-HLT instructions */
@@ -659,8 +665,8 @@ int process_j_instruction(const Instruction *instr, char *line_ptr, long *coded_
         if (instr->type == TYPE_J_JUMP) {
             /* analyze jump command to register (jmp $register) */
             if (token[FIRST_INDEX] == '$') {
-                if ((address = (unsigned int)register_num(token, line_number, file_name)) == -1) return ERROR_F;
-                reg = 1;
+                if ((address = (unsigned int)register_num(token, line_number, file_name)) == NOT_REG_VAL) return ERROR_F;
+                reg = ON;
             }
         }
         else if (!is_valide_name(token, line_number, file_name, IS_NOT_MACRO)) return ERROR_F; /* Validate label name syntax */
@@ -728,12 +734,12 @@ int register_num (char *str, int line_number, char *file_name) {
  * characters exist after then, and checks the value range 16-bit
  * returns the immediate value if all right, or WRONG_IMMED else.
  */
-int immediate_to_num(char *str, int line_number, char *file_name) {else
+int immediate_to_num(char *str, int line_number, char *file_name) {
     char *endptr;
-    int val;
+    long val;
 
     /* Extracts the numerical value from string */
-    val = (int)strtol(str, &endptr, 10);
+    val = strtol(str, &endptr, 10);
     /* Ensure digits were converted and no invalid characters exist after the number */
     if (str == endptr || *endptr != '\0') {
         fprintf(stderr, "Error at file: %s, line %d: Invalid immediate number '%s'.\n", file_name, line_number, str);
@@ -741,12 +747,12 @@ int immediate_to_num(char *str, int line_number, char *file_name) {else
     }
 
     /* Ensure immediate value is within 16-bit integer range */
-    if (val < -32768 || val > 32767) {
+    if (val < MIN_HALF_WORD_VAL || val > MAX_HALF_WORD_VAL) {
         fprintf(stderr, "Error at file: %s, line %d: Immediate value %d out of 16-bit range.\n", file_name, line_number, val);
         return WRONG_IMMED;
     }
 
-    return val;
+    return (int)val;
 }
 
 /*
@@ -763,30 +769,30 @@ int immediate_to_num(char *str, int line_number, char *file_name) {else
 long build_r_word(int opcode, int rs, int rt, int rd, int funct) {
     long word = START_VALUE;
 
-    word |= (opcode << 26); /* Pack opcode into bits 26-31 */
-    word |= (rs << 21); /* Pack rs register into bits 21-25 */
-    word |= (rt << 16); /* Pack rt register into bits 16-20 */
-    word |= (rd << 11); /* Pack rd register into bits 11-15 */
-    word |= (funct << 6); /* Pack funct field into bits 6-10 */
+    word |= (opcode << OP_SHIFT); /* Pack opcode into bits 26-31 */
+    word |= (rs << RS_SHIFT); /* Pack rs register into bits 21-25 */
+    word |= (rt << RT_SHIFT); /* Pack rt register into bits 16-20 */
+    word |= (rd << RD_SHIFT); /* Pack rd register into bits 11-15 */
+    word |= (funct << FUNCT_SHIFT); /* Pack funct field into bits 6-10 */
 
     return word;
 }
 long build_i_word(int opcode, int rs, int rt, int immed) {
     long word = START_VALUE;
     
-    word |= (opcode << 26); /* Pack opcode into bits 26-31 */
-    word |= (rs << 21); /* Pack rs register into bits 21-25 */
-    word |= (rt << 16); /* Pack rt register into bits 16-20 */
-    word |= (immed & 0xFFFF); /* Mask and pack 16-bit immediate into bits 0-15 */
+    word |= (opcode << OP_SHIFT); /* Pack opcode into bits 26-31 */
+    word |= (rs << RS_SHIFT); /* Pack rs register into bits 21-25 */
+    word |= (rt << RT_SHIFT); /* Pack rt register into bits 16-20 */
+    word |= (immed & MASK_FOR_IMMED_VAL); /* Mask and pack 16-bit immediate into bits 0-15 */
     
     return word;
 }
 long build_j_word(int opcode, int reg, int address) {
     long word = START_VALUE;
 
-    word |= (opcode << 26); /* Pack opcode into bits 26-31 */
-    word |= (reg << 25); /* Pack reg flag into bit 25 */
-    word |= (address & 0x1FFFFFF); /* Mask and pack 25-bit address into bits 0-24 */
+    word |= (opcode << OP_SHIFT); /* Pack opcode into bits 26-31 */
+    word |= (reg << REG_SHIFT); /* Pack reg flag into bit 25 */
+    word |= (address & MASK_FOR_ADDRESS_VAL); /* Mask and pack 25-bit address into bits 0-24 */
     
     return word;
 }

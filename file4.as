@@ -20,5 +20,5 @@ LIST2: .db 6.5,-9,4
 .extern val1
  .dt 27056
 K: .dw 31,-12
-END: hlt
+END hlt
 .entry K
