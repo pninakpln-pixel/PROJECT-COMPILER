@@ -1,32 +1,28 @@
-;file3.as
+;file file2.as
 ;sample source code
 .entry NEXT
 .extern wNumber
 STR: .asciz "aBcd"
 MAIN: add $3,$5,$9
-hello mcro GEN_MC
 LOOP: ori $9,-5,$2
- la val1
- mcroend
- mcro GEN_MCR2
- jmp NEXT
- mcroend hi
 NEXT: move $20,$4
 LIST: .db 6,-9
+ la val1
+ jmp NEXT
+ la val1
+ jmp NEXT
  bgt $4,$2,END
- mcro bne
  la K
  sw $0,4,$10
- mcroend
+ jmp NEXT
+ sw $0,4,$10
  bne $31,$9, LOOP
  call val1
- mcro asciz
  jmp $4
  la wNumber
- mcroend
-.extern val1
+.extern val
  .dh 27056
 K: .dw 31,-12
-END hlt
+END: hlt
 .entry K
 

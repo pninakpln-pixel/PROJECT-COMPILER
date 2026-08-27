@@ -88,7 +88,7 @@ int add_symbol(Symbol **head, char *name, int address, SymbolType type, int line
     return SUCCESS_F; 
 }
 
-/
+
 int update_data_symbols_address(Symbol *head,int ic) {
     Symbol *current = head;
 

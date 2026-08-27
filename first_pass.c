@@ -37,13 +37,14 @@
  * updates the pointer and return 1 if success, or -1 if memory allocation failure.
  */
 int make_data_space(char **data_img, int dc, int bytes_to_add, int line_number, char *file_name) {
+    char *temp;
     if ((dc+bytes_to_add) > MAX_DATA_IMAGE_SIZE) {
         fprintf(stderr, "Error at file: %s, line %d: /* No more space in the data image.\n", file_name, line_number);
         return MEMORY_ERROR;
     }
     
     /* Attempt to make memory allocation for the new data bytes */
-    char *temp = (char *)realloc(*data_img, dc + bytes_to_add);
+    temp = (char *)realloc(*data_img, dc + bytes_to_add);
     
     /* Check whether memory allocation succeeded */
     if (temp == NULL) {
@@ -164,7 +165,7 @@ int extract_copy_asciz_data (char *line_str, char **data_img, int *dc, int line_
     /* Store first DC position to restore it if something wrong */
     int start_dc = *dc;
 
-    if (is_comment(line_str) || !is_empty_line(line_str)){
+    if (is_comment(line_str) || is_empty_line(line_str)){
         fprintf(stderr, "Error at file: %s, line %d: Missing string argument for .asciz directive.\n", file_name, line_number);
         return ERROR_F;
     }
@@ -465,7 +466,7 @@ int process_i_instruction(const Instruction *instr, char *line_ptr, long *coded_
             fprintf(stderr, "Error at file: %s, line %d: Too much ',' between operands, Or missing operands.\n", file_name, line_number);
             return ERROR_F;
         }
-        if (!is_valid_name(token_reg , line_number, file_name, IS_NOT_MACRO)) return ERROR_F; /*בדיקה ששם התווית הוא שם הגיוני לתווית*/    
+        if (!is_valide_name(token_reg , line_number, file_name, IS_NOT_MACRO)) return ERROR_F; /*בדיקה ששם התווית הוא שם הגיוני לתווית*/    
     }
 
     /* Make sure no extra trailing characters exist at the end of the line */
@@ -510,7 +511,7 @@ int process_j_instruction(const Instruction *instr, char *line_ptr, long *coded_
                 reg = 1;
             }
         }
-        else if (!is_valid_name(token, line_number, file_name, IS_NOT_MACRO)) return ERROR_F; /* Validate label name syntax */
+        else if (!is_valide_name(token, line_number, file_name, IS_NOT_MACRO)) return ERROR_F; /* Validate label name syntax */
     }
 
     /* Make sure no extra trailing characters exist at the end of the line */

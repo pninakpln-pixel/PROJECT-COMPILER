@@ -250,10 +250,10 @@ int main(int argc, char *argv[]){
                 free_symbol(&symbol_list);
             }
             if (ent_list != NULL){
-                free_ext_ent(ent_list);
+                free_ext_ent(&ent_list);
             }
             if (ext_list != NULL){
-                free_ext_ent(ext_list);
+                free_ext_ent(&ext_list);
             }
             printf("Assembly complete for file %s.\n",argv[i]);           
         }

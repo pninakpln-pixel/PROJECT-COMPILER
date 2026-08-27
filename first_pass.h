@@ -5,7 +5,7 @@
 #include "helpers.h"
 int make_data_space(char **data_img, int dc, int bytes_to_addint,int line_number,char *file_name);
 int copy_num_data(char **data_img, int *dc, long *values, int count, int bytes_per_val ,int line_number, char *file_name);
-int extract_numbers_data(char *str, long *values_out, int *count_out, int bytes_per_val,int line_number,char *file_name);
+int extract_numbers_data(char *str, long *values_out, int *count_out,int line_number,char *file_name);
 int extract_copy_asciz_data (char *line_str, char **data_img, int *dc,int line_number,char *file_name);
 Instruction *extract_instruction(char **line_ptr);
 long build_r_word(int opcode, int rs, int rt, int rd, int funct);
