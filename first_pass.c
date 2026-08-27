@@ -168,20 +168,22 @@ int first_pass(char *file_name, Symbol **symbol_head, unsigned char *code_img, c
 }
 
 /*
- * This function reads numeric values from a data directive line,  and stores the numbers in a temporary array. 
+ * This function reallocates the memory buffer reserved for the data image to store additional sata.
  *
  * Assumptions:
- * - line_ptr points to the remaining arguments text part of a data directive line (.db, .dh, .dw).
- * - values_out is a valid pointer to an array with enough space for extracted numbers.
- * 
- * Algorithem:
- * extracts each number using strtol and stores it in the temporery array, checks for invalid leading or double or missing commas.
+ * - data_img is a valid pointer to a dynamically allocated buffer (or NULL initially).
+ * - dc represents the current size of the data image in bytes.
+ * - bytes_to_add is a positive number of bytes to allocate.
+ *
+ * Algorithm:
+ * Resizes the data buffer using realloc to fit the new total byte count, 
+ * updates the pointer and return 1 if success, or -1 if memory allocation failure.
  */
-<<<<<<< HEAD
 int make_data_space(char **data_img, int dc, int bytes_to_add, int line_number, char *file_name) {
     char *temp;
+
     if ((dc+bytes_to_add) > MAX_DATA_IMAGE_SIZE) {
-        fprintf(stderr, "Error at file: %s, line %d: /* No more space in the data image.\n", file_name, line_number);
+        fprintf(stderr, "Error at file: %s, line %d: No more space in the data image.\n", file_name, line_number);
         return MEMORY_ERROR;
     }
     
@@ -192,7 +194,14 @@ int make_data_space(char **data_img, int dc, int bytes_to_add, int line_number, 
     if (temp == NULL) {
         fprintf(stderr, "Error at file: %s, line %d: Memory allocation for data image failed!\n", file_name, line_number);
         return MEMORY_ERROR;
-=======
+    }
+    
+    /* Update the original pointer to the new memory address */
+    *data_img = temp;
+    return SUCCESS_F;
+}
+
+
 int extract_numbers_data(char *line_ptr, long *values_out, int *count_out, int line_number, char *file_name) {
     char *endptr;
     long val;
@@ -237,7 +246,6 @@ int extract_numbers_data(char *line_ptr, long *values_out, int *count_out, int l
             return ERROR_F;
         }
         line_ptr++; /* Skip thecomma */
->>>>>>> 23019625bb6bafbf11745da0c2e2031be13c30bf
     }
     return SUCCESS_F;
 }
@@ -289,40 +297,6 @@ int copy_num_data(char **data_img, int *dc, long *values, int count, int bytes_p
         }
     }
 
-    return SUCCESS_F;
-}
-
-/*
- * This function reallocates the memory buffer reserved for the data image to store additional sata.
- *
- * Assumptions:
- * - data_img is a valid pointer to a dynamically allocated buffer (or NULL initially).
- * - dc represents the current size of the data image in bytes.
- * - bytes_to_add is a positive number of bytes to allocate.
- *
- * Algorithm:
- * Resizes the data buffer using realloc to fit the new total byte count, 
- * updates the pointer and return 1 if success, or -1 if memory allocation failure.
- */
-int make_data_space(char **data_img, int dc, int bytes_to_add, int line_number, char *file_name) {
-    char *temp;
-
-    if ((dc+bytes_to_add) > MAX_DATA_IMAGE_SIZE) {
-        fprintf(stderr, "Error at file: %s, line %d: No more space in the data image.\n", file_name, line_number);
-        return MEMORY_ERROR;
-    }
-    
-    /* Attempt to make memory allocation for the new data bytes */
-    *temp = (char *)realloc(*data_img, dc + bytes_to_add);
-    
-    /* Check whether memory allocation succeeded */
-    if (temp == NULL) {
-        fprintf(stderr, "Error at file: %s, line %d: Memory allocation for data image failed!\n", file_name, line_number);
-        return MEMORY_ERROR;
-    }
-    
-    /* Update the original pointer to the new memory address */
-    *data_img = temp;
     return SUCCESS_F;
 }
 
@@ -610,7 +584,7 @@ int process_i_instruction(const Instruction *instr, char *line_ptr, long *coded_
         if ((immed = immediate_to_num(token_reg, line_number, file_name)) == WRONG_IMMED) return ERROR_F;
 
         /* Skip whitespace and check comma after immediate value */
-        while (isspace((unsigned char)*line_ptr)) line_ptr++;
+        while (isspace(*line_ptr)) line_ptr++;
         if (*line_ptr != ',') {
             fprintf(stderr, "Error at file: %s, line %d: Expected ',' between operands.\n", file_name, line_number);
             return ERROR_F;
@@ -640,11 +614,8 @@ int process_i_instruction(const Instruction *instr, char *line_ptr, long *coded_
             fprintf(stderr, "Error at file: %s, line %d: Too much ',' between operands, Or missing operands.\n", file_name, line_number);
             return ERROR_F;
         }
-<<<<<<< HEAD
         if (!is_valide_name(token_reg , line_number, file_name, IS_NOT_MACRO)) return ERROR_F; /*בדיקה ששם התווית הוא שם הגיוני לתווית*/    
-=======
         if (!is_valide_name(token_reg , line_number, file_name, IS_NOT_MACRO)) return ERROR_F;     
->>>>>>> 23019625bb6bafbf11745da0c2e2031be13c30bf
     }
 
     /* Make sure no extra trailing characters exist at the end of the line */

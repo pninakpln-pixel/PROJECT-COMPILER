@@ -111,6 +111,7 @@ int main(int argc, char *argv[]){
         if(first_status==ERROR_F||first_status==MEMORY_ERROR){
             fprintf(stderr,"There are errors during first_pass in file %s,skipping this file\n",argv[i]);
             /*free in case of error*/
+            free(name_file_am);
             if (symbol_list != NULL) {
                 free_symbol(&symbol_list);
             }
@@ -182,7 +183,7 @@ int main(int argc, char *argv[]){
                         fprintf(file_ob,"%04d",ICF+j);
 
                         for(k=0; k<BYTES_PER_WORD && (j+k)<DCF; k++) {
-                            fprintf(file_ob," %02X",(unsigned int)(data_img[j+k] & 0xFF));
+                            fprintf(file_ob," %02X",(unsigned int)(data_img[j+k] & MASK_OF_BYTE));
                         }
                         fprintf(file_ob, "\n");
                     }
@@ -192,7 +193,7 @@ int main(int argc, char *argv[]){
             }
             /*Create an entry file (.ent) if entry labels were defined */
             if(ent_list==NULL){
-                printf("There is no output file of type entry ,because there is no entry label.");
+                printf("In file %s there is no output file of type entry ,because there is no entry label.\n",argv[i]);
             }else{
                 name_file_ent=make_new_name_file(argv[i],".ent");
                 if(name_file_ent==NULL){
@@ -217,11 +218,12 @@ int main(int argc, char *argv[]){
             }
             /*Create an external file (.ext) if extern symbols are used */   
             if(ext_list==NULL){
-                printf("There is no output file of type externals ,because there is no extern label.");
+                printf("In file %s there is no output file of type externals ,because there is no extern label.\n",argv[i]);
+                    exit(ERROR_EXIT);
             }else{
                 name_file_ext=make_new_name_file(argv[i],".ext");
                 if(name_file_ext==NULL){
-                    fprintf(stderr,"There is an erroro, memory allocation failed for .ext file name in file %s.\n",argv[i]);
+                    fprintf(stderr,"There is an error, memory allocation failed for .ext file name in file %s.\n",argv[i]);
                     exit(ERROR_EXIT);
                 }else{
                     file_ext=fopen(name_file_ext,"w");

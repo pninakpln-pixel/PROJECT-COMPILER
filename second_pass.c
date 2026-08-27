@@ -30,7 +30,7 @@ char target[MAX_LABEL_LENGTH];/* Holds the target label name*/
 char word[MAX_WORD_LENGTH];/* Holds the word we are currently checking */
 Symbol *current_symbol=NULL;/* Pointer to find a label from the symbol table */
 int index=START_VALUE;/*The location in the machine code array*/
-unsigned long address_target=START_VALUE;/* The address of the destination to jump to */
+unsigned int address_target=START_VALUE;/* The address of the destination to jump to */
  const Instruction *inst=NULL;/* Pointer to the current instruction data from the instruction table */
 int dis=START_VALUE;/* The distance we need to jump (for branch commands) */
 /* Try to open the file. If it can't, print an error */
@@ -63,7 +63,7 @@ while(fgets(line, sizeof(line),am_file) != NULL){
             ptr_line=extract_word(ptr_line,word,IS_NOT_REGISTER );
             /* If the label name does not exist */
             if(word[FIRST_INDEX]=='\0'){
-                error_found=1;
+                error_found=ON;
                 fprintf(stderr,"there is an error,in file %s on line %d missing label\n",file_name,line_number);
                 continue;
             }
@@ -150,7 +150,7 @@ while(fgets(line, sizeof(line),am_file) != NULL){
     } else if(inst->type==TYPE_I_BRANCH){/* If this is a type I conditional branch */
         /* Extract the first register and skip the comma after it */
         ptr_line=extract_word(ptr_line,word,IS_REGISTER);
-        while (isspace((char)*ptr_line)){
+        while (isspace(*ptr_line)){
             ptr_line++;
         }
         if(*ptr_line==','){
@@ -158,7 +158,7 @@ while(fgets(line, sizeof(line),am_file) != NULL){
         }
         /* Extract the second register and skip the comma after it */
         ptr_line=extract_word(ptr_line,word,IS_REGISTER);
-          while (isspace((char)*ptr_line)){
+          while (isspace(*ptr_line)){
             ptr_line++;
         }
         if(*ptr_line==','){
@@ -193,7 +193,7 @@ while(fgets(line, sizeof(line),am_file) != NULL){
             /* Enter the distance */
             /*Split the 16 bits of the distance into the first 2 bytes*/
             code_img[index] |=(dis&MASK_OF_BYTE);
-            code_img[index+1] |=((dis>>ONE_BYTE)&MASK_OF_BYTE);
+            code_img[index+SECOND_BYTE] |=((dis>>ONE_BYTE)&MASK_OF_BYTE);
             ic+=BYTES_PER_WORD;
             continue;
         }

@@ -13,7 +13,7 @@ int is_empty_line(char *str){
     /* Run on each character in the string until the end of the line */
     while(*str!='\0'){
         /* Check if the current character is not a whitespace character */
-        if(isspace((unsigned char)*str)==ERROR_F){
+        if(isspace(*str)==ERROR_F){
             return ERROR_F; 
         }
         str++;/* Move to the next character */
@@ -32,11 +32,11 @@ char *extract_word(char *str,char *result,int is_operand){
     int i=START_VALUE;/* Index to read from the source string */
     int j=START_VALUE;/* Index to write to the result*/
     /* Skip white spaces at the beginning of the word */
-    while(str[i]!='\0' && isspace((unsigned char)str[i])!=ERROR_F){
+    while(str[i]!='\0' && isspace(str[i])!=ERROR_F){
         i++;
     }
     
-    while(str[i]!='\0' && isspace((unsigned char)str[i])==ERROR_F){
+    while(str[i]!='\0' && isspace(str[i])==ERROR_F){
         /* If it is a register operand and there is a comma, stop the extraction */
         if(is_operand==IS_REGISTER && str[i]==','){
             break;
@@ -70,7 +70,7 @@ int is_label(char *word){
 */
 int is_comment(char *str){
     /* Skip all whitespace at the beginning of the line */
-    while(*str!='\0' && isspace((unsigned char)*str)!=ERROR_F){
+    while(*str!='\0' && isspace(*str)!=ERROR_F){
         str++;
     }
     /* Check if the first character found is a semicolon */

@@ -25,7 +25,7 @@ mcro GEN_MC2
  call val1
  jmp $4
  la wNumber
-.extern val
+.extern val1
  .dh 27056
 K: .dw 31,-12
 END: hlt

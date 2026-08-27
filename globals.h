@@ -19,27 +19,23 @@
 #define START_VALUE 0/*Initialize to value 0*/
 #define END_OF_STRING_CHAR 1/* Size of space for end of string character \0 */
 #define TO_LAST_CHAR 1/* Subtract 1 to get to the last character */
-#define MAX_DATA_IMAGE_SIZE 33550236 /* Maximum code image size (machine memory size minus maximum IC size minus first 100 bytes) */
-
 #define WRONG_IMMED -32769
-#define NO_CHAR 0/* no chare in string*/
+#define NO_CHAR 0/* no character in string*/
 #define MAX_DATA_IMAGE_SIZE 33550236 /* Maximum code image size (machine memory size minus maximum IC size minus first 100 bytes) */
-#define MIN_BYTE_VAL -0x80 /* Minimum value for a signed byte */
-#define MAX_BYTE_VAL 0x7F /* Maximum value for a signed byte */
-#define MIN_HALF_WORD_VAL -0x8000 /* Minimum value for a signed half-word */
-#define MAX_HALF_WORD_VAL 0x7FFF /* Maximum value for a signed half-word */
-#define MIN_WORD_VAL -0x80000000 /* Minimum value for a signed word */
-#define MAX_WORD_VAL 0x7FFFFFFF /* Maximum value for a signed word */
+#define MIN_BYTE_VAL -128 /* Minimum value for a signed byte */
+#define MAX_BYTE_VAL 127 /* Maximum value for a signed byte */
+#define MIN_HALF_WORD_VAL -32768 /* Minimum value for a signed half-word */
+#define MAX_HALF_WORD_VAL 32767 /* Maximum value for a signed half-word */
+#define MIN_WORD_VAL (-2147483647-1) /* Minimum value for a signed word */
+#define MAX_WORD_VAL 2147483647 /* Maximum value for a signed word */
 #define REGULAR_BASE 10 /* Regular base for decimal numbers */
-
 #define ON 1/*Flag on*/
 #define OFF 0 /*Flag off*/
 #define SUCCESS_F 1/* Indicates success of a function*/
 #define ERROR_F 0/*Indicates a function failure.*/
 #define ERROR_MAIN 1/*An error was detected in main*/
 #define SUCCESS_MAIN 0/*No errors and success returned for main*/
-#define SAME 0/*result os compare function*/
-
+#define SAME 0/*result of compare function*/
 #define NO_FILE_ARG 1/* Number of arguments that are not input files */
 #define MIN_ARG 2 /* Minimum number of arguments*/
 #define FIRST_INDEX 0/*First index of the array*/
@@ -50,7 +46,6 @@
 #define SECOND_BYTE 1/*The second byte in a 4-byte instruction word */
 #define THIRD_BYTE 2/*The third byte in a 4-byte instruction word */
 #define FOURTH_BYTE 3/*The fourth byte in a 4-byte instruction word */
-
 #define IS_REGISTER 1/* The operand is a register */
 #define IS_NOT_REGISTER 0/* The operand is not a register */
 #define IS_MACRO 1/* The operand is a macro */
@@ -71,7 +66,6 @@
 #define MOVE_FNC 1 /* funct of move command */
 #define MVHI_FNC 2 /* funct of mvhi command */
 #define MVLO_FNC 3 /* funct of mvlo command */
-
 #define R_ALU_OP 0 /* opcode for R-type ALU commands */
 #define R_MOVE_OP 1 /* opcode for R-type move commands */
 #define ADDI_OP 10 /* opcode for addi command */
@@ -93,7 +87,6 @@
 #define LA_OP 26 /* opcode for la command */
 #define CALL_OP 27 /* opcode for call command */
 #define HLT_OP 28 /* opcode for hlt command */
-
 #define MASK_OF_BYTE 0xFF/* 8-bit mask (single byte) */
 #define MASK_for_SINGLE_BIT 0x01/* 1-bit mask */
 #define ONE_BYTE 8/*Shift by one byte-8 bits */
